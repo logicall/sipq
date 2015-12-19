@@ -2,6 +2,7 @@
 package transport
 
 import (
+	"bufio"
 	_ "errors"
 	"net"
 )
@@ -19,19 +20,49 @@ func (tt TransportType) String() string {
 	return string(tt)
 }
 
-type ListenServer struct {
+type Server struct {
 	TransportType TransportType
 	Listener      net.Listener
 }
 
-func (ls *ListenServer) String() string {
-	return ls.TransportType.String()
+type Connection struct {
+	Conn net.Conn //interface type
 }
 
-func createTcpServer(laddr string) (*ListenServer, error) {
-	server := &ListenServer{TransportType: TransportTypeTCP}
+func (conn *Connection) Reader() *bufio.Reader {
+	return bufio.NewReader(conn.Conn)
+}
 
-	listener, err := net.Listen(string(TransportTypeTCP), laddr)
+func (conn *Connection) Writer() *bufio.Writer {
+	return bufio.NewWriter(conn.Conn)
+}
+
+func (conn *Connection) Close (){
+	conn.Conn.Close() //ignore error 
+}
+
+func (svr *Server) String() string {
+	return svr.TransportType.String()
+}
+
+func (svr *Server) Close () {
+	svr.Listener.Close() //ignore error 
+}
+
+func (svr *Server) Accept() (*Connection, error) {
+	conn, err := svr.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	result := &Connection{Conn: conn}
+	return result, nil
+}
+
+//laddr(local addr) is like 127.0.0.1:5060
+func CreateTcpServer(laddr string) (*Server, error) {
+	server := &Server{TransportType: TransportTypeTCP}
+
+	listener, err := net.Listen(TransportTypeTCP.String(), laddr)
 	if err != nil {
 		return nil, err
 	}
@@ -39,4 +70,14 @@ func createTcpServer(laddr string) (*ListenServer, error) {
 
 	return server, nil
 
+}
+
+//raddr(remote addr) is like 127.0.0.1:5060
+func CreateTcpConnection(raddr string) (*Connection, error) {
+	conn, err := net.Dial(TransportTypeTCP.String(), raddr)
+	if err != nil {
+		return nil, err
+	}
+	result := &Connection{conn}
+	return result, nil
 }
