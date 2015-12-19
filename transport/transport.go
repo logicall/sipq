@@ -37,16 +37,16 @@ func (conn *Connection) Writer() *bufio.Writer {
 	return bufio.NewWriter(conn.Conn)
 }
 
-func (conn *Connection) Close (){
-	conn.Conn.Close() //ignore error 
+func (conn *Connection) Close() {
+	conn.Conn.Close() //ignore error
 }
 
 func (svr *Server) String() string {
 	return svr.TransportType.String()
 }
 
-func (svr *Server) Close () {
-	svr.Listener.Close() //ignore error 
+func (svr *Server) Close() {
+	svr.Listener.Close() //ignore error
 }
 
 func (svr *Server) Accept() (*Connection, error) {
