@@ -2,4 +2,4 @@ nimcache/
 *.swp
 cscope*
 tags
-
+.DS_Store
