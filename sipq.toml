@@ -1,0 +1,11 @@
+
+	#example of the default config 
+	[[server]]
+		type="udp"
+		ip="127.0.0.1"
+		port=50600
+	[[server]]
+		type="tcp"
+		ip="127.0.0.1"
+		port=50600				
+	

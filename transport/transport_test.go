@@ -10,14 +10,14 @@ import (
 )
 
 func udpServerConn() *Connection {
-	conn, err := CreateUdpConnection(ServerAddress)
+	conn, err := createUdpConnection(ServerAddress)
 
 	util.ErrorPanic(err)
 	return conn
 }
 
 func udpClientConn() *Connection {
-	conn, err := CreateUdpConnection(ClientAddress)
+	conn, err := createUdpConnection(ClientAddress)
 
 	util.ErrorPanic(err)
 	return conn

@@ -15,10 +15,10 @@ const (
 )
 
 const (
-	TransportTypeTCP  TransportType = "tcp"
-	TransportTypeUDP  TransportType = "udp"
-	TransportTypeSCTP TransportType = "sctp"
-	TransportTypeTLS  TransportType = "tls"
+	TCP  TransportType = "tcp"
+	UDP  TransportType = "udp"
+	SCTP TransportType = "sctp"
+	TLS  TransportType = "tls"
 )
 
 func (tt TransportType) String() string {
@@ -27,7 +27,8 @@ func (tt TransportType) String() string {
 
 type Server struct {
 	TransportType TransportType
-	Listener      net.Listener
+	Listener      net.Listener //used by TCP/TLS/SCTP instead of UDP
+	UdpConn       *Connection  //used by UDP
 }
 
 type Connection struct {
@@ -61,6 +62,7 @@ func (conn *Connection) Writer() *bufio.Writer {
 
 func (conn *Connection) Close() {
 	conn.Conn.Close() //ignore error
+	allConnections.Remove(conn)
 }
 
 func (svr *Server) String() string {
@@ -68,7 +70,17 @@ func (svr *Server) String() string {
 }
 
 func (svr *Server) Close() {
-	svr.Listener.Close() //ignore error
+	//TODO remove all connections belong to this server
+	if svr.Listener != nil {
+		svr.Listener.Close() //ignore error
+		svr.Listener = nil
+	}
+
+	if svr.UdpConn != nil {
+		svr.UdpConn.Close()
+		svr.UdpConn = nil
+	}
+
 }
 
 func (svr *Server) Accept() (*Connection, error) {
@@ -76,33 +88,45 @@ func (svr *Server) Accept() (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := &Connection{Conn: conn, TransportType: TransportTypeTCP}
+	result := &Connection{Conn: conn, TransportType: TCP}
 	return result, nil
 }
 
-//used for both client and server
-func CreateUdpConnection(laddr string) (*Connection, error) {
-	svrConn := &Connection{TransportType: TransportTypeUDP}
+func createUdpConnection(laddr string) (*Connection, error) {
+	svrConn := &Connection{TransportType: UDP}
 	var err error
-	udpAddr, err := net.ResolveUDPAddr(TransportTypeUDP.String(), laddr)
+	udpAddr, err := net.ResolveUDPAddr(UDP.String(), laddr)
 	if err != nil {
 		return nil, err
 	}
 
-	svrConn.Conn, err = net.ListenUDP(TransportTypeUDP.String(), udpAddr)
+	svrConn.Conn, err = net.ListenUDP(UDP.String(), udpAddr)
 
 	if err != nil {
 		return nil, err
 	}
+
+	allConnections.Add(svrConn)
+	go handleNewData(svrConn)
 
 	return svrConn, nil
 }
 
+//used for both client and server
+func CreateUdpServer(laddr string) (*Server, error) {
+	conn, err := createUdpConnection(laddr)
+	if err != nil {
+		return nil, err
+	}
+	server := &Server{TransportType: UDP, UdpConn: conn}
+	return server, nil
+}
+
 //laddr(local addr) is like 127.0.0.1:5060
 func CreateTcpServer(laddr string) (*Server, error) {
-	server := &Server{TransportType: TransportTypeTCP}
+	server := &Server{TransportType: TCP}
 
-	listener, err := net.Listen(TransportTypeTCP.String(), laddr)
+	listener, err := net.Listen(TCP.String(), laddr)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +138,13 @@ func CreateTcpServer(laddr string) (*Server, error) {
 
 //raddr(remote addr) is like 127.0.0.1:5060
 func CreateTcpConnection(raddr string) (*Connection, error) {
-	conn, err := net.Dial(TransportTypeTCP.String(), raddr)
+	conn, err := net.Dial(TCP.String(), raddr)
 	if err != nil {
 		return nil, err
 	}
-	result := &Connection{Conn: conn, TransportType: TransportTypeTCP}
+	result := &Connection{Conn: conn, TransportType: TCP}
+
+	allConnections.Add(result)
+	go handleNewData(result)
 	return result, nil
 }
