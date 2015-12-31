@@ -2,6 +2,9 @@ package transport
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
+	"io"
 	"sipq/coding"
 	"sipq/trace"
 	"sipq/util"
@@ -40,46 +43,189 @@ var allConnections *Connections = &Connections{}
 //to communicate with comsumers of sip message
 var sipMsgChan chan coding.SipMessage = make(chan coding.SipMessage)
 
-func fetchSipMessageFromReader(reader *bufio.Reader) (*coding.SipMessage, error) {
-	reader.ReadString(coding.LF[0])
-	//TODO
-	return nil, nil
+//This function is blocking.
+//Serves as interface toward transport users.
+func FetchSipMessage() *coding.SipMessage {
+	var msg coding.SipMessage
+	msg = <-sipMsgChan
+	return &msg
+}
+
+//if error is EOF, need to handle specially
+func fetchSipMessageFromReader(reader io.Reader, transportType TransportType) (*coding.SipMessage, error) {
+
+	var bufReader *bufio.Reader
+
+	bufReader = bufio.NewReader(reader)
+
+	const (
+		expectingStartLine int = iota
+		expectingHeader
+		expectingBody
+	)
+
+	var sipMessage *coding.SipMessage = &coding.SipMessage{}
+	var line string
+	var lineLen int
+	var err error
+	var state int
+	var contentLengthHdr *coding.SipHeaderContentLength
+	var hdr coding.SipHeader
+
+	state = expectingStartLine
+	for {
+		switch state {
+		case expectingStartLine:
+			line, err = bufReader.ReadString(coding.LF[0])
+
+			if err != nil {
+				return nil, err
+			}
+			lineLen = len(line)
+			if lineLen < 2 {
+				//tolerate empty line
+				if util.StrTrim(line) == "" {
+					continue
+				} else {
+					return nil, coding.ErrInvalidLine
+				}
+			}
+			if line[lineLen-2:lineLen] != coding.CRLF {
+				trace.Trace.Println(coding.ErrInvalidLine)
+				return nil, coding.ErrInvalidLine
+			}
+			line = util.StrTrim(line)
+			if line == "" {
+				continue
+			}
+
+			startLine, msgType, err := coding.ParseStartLine(line)
+			if err != nil {
+				trace.Trace.Println(err)
+				return nil, err
+			}
+			sipMessage.MsgType = msgType
+			sipMessage.StartLine = startLine
+			state = expectingHeader
+		case expectingHeader:
+			line, err = bufReader.ReadString(coding.LF[0])
+
+			if err != nil {
+				if err == io.EOF {
+					return sipMessage, err
+				}
+				return nil, err
+			}
+			lineLen = len(line)
+			if lineLen < 2 {
+				trace.Trace.Println(coding.ErrInvalidLine)
+				return nil, coding.ErrInvalidLine
+			}
+			if line[lineLen-2:lineLen] != coding.CRLF {
+				trace.Trace.Println(coding.ErrInvalidLine)
+				return nil, coding.ErrInvalidLine
+			}
+			if lineLen == 2 {
+				state = expectingBody
+				hdr, err = sipMessage.GetHeader(coding.HdrContentLength)
+				switch transportType {
+				case UDP, SCTP:
+					if err != nil {
+						continue
+					}
+				//content length header is mandatory for stream based transport
+				default:
+
+					if err != nil {
+						return nil, coding.ErrInvalidMsg
+					}
+
+				}
+				contentLengthHdr = hdr.(*coding.SipHeaderContentLength)
+				continue
+			}
+			hdr, err = coding.ParseHeader(line)
+			if err != nil {
+				trace.Trace.Println(coding.ErrInvalidLine)
+				return nil, coding.ErrInvalidLine
+			}
+			sipMessage.AddHeader(hdr)
+
+		case expectingBody:
+			for {
+
+				b, err := bufReader.ReadByte()
+				if err != nil {
+					if err == io.EOF {
+						switch transportType {
+						case UDP, SCTP:
+							return sipMessage, err
+						default:
+							if len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
+								return sipMessage, err
+							} else {
+								trace.Trace.Println(coding.ErrInvalidMsg)
+								return nil, coding.ErrInvalidMsg
+							}
+						}
+					}
+					trace.Trace.Println(coding.ErrInvalidMsg)
+					return nil, coding.ErrInvalidMsg
+				}
+				if contentLengthHdr != nil && len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
+					return sipMessage, nil
+				}
+				sipMessage.BodyContent = append(sipMessage.BodyContent, b)
+			} //inner for
+		} //switch
+	} //for
+
+	err = fmt.Errorf("unexpected")
+	panic(err)
+	return nil, err
 }
 
 //should be called in a go routine, since it is blocking
 func handleNewData(conn *Connection) {
-	var buf []byte
-	var reader *bufio.Reader //a struct instead of an interface
+	var buf []byte = make([]byte, coding.MaxUdpPacketLen)
 
 	for {
 		switch conn.TransportType {
 		case TCP:
-			if reader == nil {
-				reader = conn.Reader()
+			laddr := conn.Conn.LocalAddr()
+			raddr := conn.Conn.RemoteAddr()
+			msg, err := fetchSipMessageFromReader(conn.Conn, TCP)
+			if err != nil && err != io.EOF {
+				conn.Close()
+				return
 			}
-			msg, err := fetchSipMessageFromReader(reader)
-			if err != nil {
+			msg.LocalAddr = laddr
+			msg.RemoteAddr = raddr
+			if err == io.EOF {
 				conn.Close()
 				return
 			}
 			sipMsgChan <- *msg
 
-		//TODO
 		//get a whole message from the connections and output the message
 		case UDP:
-			if buf == nil {
-				buf = make([]byte, coding.MaxUdpPacketLen)
-			}
-			n, addr, err := conn.ReadFrom(buf)
+			laddr := conn.Conn.LocalAddr()
+			n, raddr, err := conn.ReadFrom(buf)
+
 			if err != nil {
-				trace.Trace.Fatalln("read failed from udp", conn) //UDP connection, not return
+				trace.Trace.Println("read failed from udp", conn, err) //UDP connection, not return
 				continue
 			}
-			var msg coding.SipMessage
-			msg.Raw = string(buf[0:n])
-			msg.LocalAddr = conn.Conn.LocalAddr()
-			msg.RemoteAddr = addr
-			sipMsgChan <- msg
+			udpReader := bytes.NewReader(buf[:n])
+			msg, err := fetchSipMessageFromReader(udpReader, UDP)
+			if err != nil && err != io.EOF {
+				trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
+				return
+			}
+
+			msg.LocalAddr = laddr
+			msg.RemoteAddr = raddr
+			sipMsgChan <- *msg
 		default:
 			trace.Trace.Fatalln("not implemented")
 		}

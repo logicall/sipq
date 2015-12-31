@@ -6,6 +6,14 @@
 // URI Gneric Syntax https://tools.ietf.org/html/rfc2396
 package coding
 
+import (
+	"fmt"
+	"regexp"
+	"strconv"
+
+	"sipq/trace"
+)
+
 //Grammar
 const (
 	TAB = "\t"
@@ -25,8 +33,58 @@ const (
 	SIPVersion2 = "SIP/2.0"
 )
 
-//Request-Line  =  Method SP Request-URI SP SIP-Version CRLF
-//Status-Line  =   SIP-Version SP Status-Code SP Reason-Phrase CRLF
+var (
+	//Request-Line  =  Method SP Request-URI SP SIP-Version CRLF
+	reRequestLine *regexp.Regexp = regexp.MustCompile(`(?i)(?P<method>\w+) (?P<uri>[:@.\w]+) (?P<version>SIP/[12]\.0)`)
+
+	//Status-Line  =   SIP-Version SP Status-Code SP Reason-Phrase CRLF
+	reStatusLine *regexp.Regexp = regexp.MustCompile(`(?i)(?P<version>SIP/[12]\.0) (?P<status>\d+) (?P<reason>[ \w]+)`)
+)
+
+var (
+	ErrInvalidLine error = fmt.Errorf("invalid line")
+	ErrNotMatch    error = fmt.Errorf("not match")
+	ErrNotFound    error = fmt.Errorf("not found")
+	ErrInvalidMsg  error = fmt.Errorf("invalid message")
+)
+
+type StartLine interface{}
+type RequestLine struct {
+	Method, Uri, Version string
+}
+type StatusLine struct {
+	Version, Reason string
+	Status          int
+}
+
+func ParseStartLine(line string) (startLine StartLine, msgType int, err error) {
+	trace.Trace.Println("enter ParseStartLine", line)
+	defer trace.Trace.Println("exit ParseStartLine", line)
+	var result []string
+
+	result = reRequestLine.FindStringSubmatch(line)
+
+	if result == nil {
+		result = reStatusLine.FindStringSubmatch(line)
+
+		if result == nil {
+			return nil, MsgTypeInvalid, ErrInvalidLine
+		} else {
+			statusLine := &StatusLine{}
+			statusLine.Version = result[1]
+			statusLine.Reason = result[3]
+			n, _ := strconv.Atoi(result[2])
+			statusLine.Status = n
+			return statusLine, MsgTypeResponse, nil
+		}
+	} else {
+		requestLine := &RequestLine{}
+		requestLine.Method = result[1]
+		requestLine.Uri = result[2]
+		requestLine.Version = result[3]
+		return requestLine, MsgTypeRequest, nil
+	}
+}
 
 //implementations should avoid spaces between the field
 //name and the colon and use a single space (SP) between the colon and

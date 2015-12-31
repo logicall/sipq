@@ -31,4 +31,7 @@ func main() {
 	}
 	transport.AllServers = transport.StartServers(config.TheExeConfig)
 
+	//wait forever here
+	var exit chan bool = make(chan bool)
+	<-exit
 }

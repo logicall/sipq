@@ -2,8 +2,6 @@
 package transport
 
 import (
-	"bufio"
-
 	"net"
 )
 
@@ -48,16 +46,6 @@ func (conn *Connection) ReadFrom(buf []byte) (int, net.Addr, error) {
 	var udpConn *net.UDPConn = conn.Conn.(*net.UDPConn)
 	n, addr, err := udpConn.ReadFrom(buf)
 	return n, addr, err
-}
-
-//used by TCP
-func (conn *Connection) Reader() *bufio.Reader {
-	return bufio.NewReader(conn.Conn)
-}
-
-//used by TCP
-func (conn *Connection) Writer() *bufio.Writer {
-	return bufio.NewWriter(conn.Conn)
 }
 
 func (conn *Connection) Close() {

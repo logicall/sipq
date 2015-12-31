@@ -2,12 +2,14 @@ package coding
 
 import (
 	"net"
+	"strings"
 )
 
 //Message
 const (
-	MsgTypeRequest  = 0
-	MsgTypeResponse = 1
+	MsgTypeInvalid  = 0
+	MsgTypeRequest  = 1
+	MsgTypeResponse = 2
 
 	MethodInvite   = "INVITE"
 	MethodAck      = "ACK"
@@ -39,8 +41,49 @@ var ReasonPhrase map[int]string = map[int]string{
 //stands for a whole SIP message
 type SipMessage struct {
 	MsgType    int //request or response
+	StartLine  StartLine
 	LocalAddr  net.Addr
 	RemoteAddr net.Addr
-	Method     string //INVITE,ACK,etc
-	Raw        string //all the contents
+	HeaderMap  map[string]SipHeader
+
+	BodyContent []byte
+}
+
+func (msg *SipMessage) GetHeader(name string) (SipHeader, error) {
+	name = strings.ToLower(name)
+	hdr, ok := msg.HeaderMap[name]
+	if ok {
+		return hdr, nil
+	}
+	return nil, ErrNotFound
+}
+
+func (msg *SipMessage) AddHeader(hdr SipHeader) {
+	if msg.HeaderMap == nil {
+		msg.HeaderMap = make(map[string]SipHeader)
+	}
+	headerKey := strings.ToLower(hdr.Name())
+	oldHdr, ok := msg.HeaderMap[headerKey]
+
+	if ok {
+		oldHdr.SetValue(oldHdr.Value() + HeaderValueSep + hdr.Value())
+	} else {
+
+		msg.HeaderMap[headerKey] = hdr
+	}
+}
+
+func (msg *SipMessage) Add(headerName, headerValue string) {
+	if msg.HeaderMap == nil {
+		msg.HeaderMap = make(map[string]SipHeader)
+	}
+
+	headerKey := strings.ToLower(headerName)
+	oldHdr, ok := msg.HeaderMap[headerKey]
+	if ok {
+		oldHdr.SetValue(oldHdr.Value() + HeaderValueSep + headerValue)
+	} else {
+		hdr := &SipHeaderCommon{StrName: headerName, StrValue: headerValue}
+		msg.HeaderMap[headerKey] = hdr
+	}
 }

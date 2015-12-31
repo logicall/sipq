@@ -3,124 +3,96 @@ package transport
 
 import (
 	"bufio"
-
-	"fmt"
-	"sipq/util"
+	"net"
 	"testing"
+
+	"sipq/coding"
+	"sipq/config"
+	"sipq/util"
 )
 
-func udpServerConn() *Connection {
-	conn, err := createUdpConnection(ServerAddress)
+var SipMessageInvite string = `
+INVITE sip:bob@biloxi.com SIP/2.0
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bK776asdhds
+Max-Forwards: 70
+To: Bob <sip:bob@biloxi.com>
+From: Alice <sip:alice@atlanta.com>;tag=1928301774
+Call-ID: a84b4c76e66710@pc33.atlanta.com
+CSeq: 314159 INVITE
+Contact: <sip:alice@pc33.atlanta.com>
+Content-Type: application/sdp
+Content-Length: 5
 
-	util.ErrorPanic(err)
-	return conn
-}
+hello
+`
 
-func udpClientConn() *Connection {
-	conn, err := createUdpConnection(ClientAddress)
+var SipMessage200OK string = `
+SIP/2.0 200 OK
+Via: SIP/2.0/UDP server10.biloxi.com;branch=z9hG4bKnashds8;received=192.0.2.3
+Via: SIP/2.0/UDP bigbox3.site3.atlanta.com;branch=z9hG4bK77ef4c2312983.1;received=192.0.2.2
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bK776asdhds ;received=192.0.2.1
+To: Bob <sip:bob@biloxi.com>;tag=a6c85cf
+From: Alice <sip:alice@atlanta.com>;tag=1928301774
+Call-ID: a84b4c76e66710@pc33.atlanta.com
+CSeq: 314159 INVITE
+Contact: <sip:bob@192.0.2.4>
+Content-Type: application/sdp
+Content-Length: 5
 
-	util.ErrorPanic(err)
-	return conn
-}
+hello
+`
 
-func tcpServer() *Server {
-
-	svr, err := CreateTcpServer(ServerAddress)
-
-	util.ErrorPanic(err)
-	return svr
-}
-
-func tcpserverHandleConnection(svr *Server, outstr chan string) {
-
-	conn, err := svr.Accept()
-
-	util.ErrorPanic(err)
-
-	var reader *bufio.Reader
-	reader = conn.Reader()
-
-	str, _ := reader.ReadString('\n')
-
-	outstr <- str
-}
-
-func tcpClient() *Connection {
-
-	clt, err := CreateTcpConnection(ServerAddress)
-	util.ErrorPanic(err)
-	return clt
-
-}
-
-func udpServerHandleData(conn *Connection, outstr chan string) {
-	fmt.Println("udpServerHandleData")
-	var buf []byte = make([]byte, 1024)
-
-	n, _, err := conn.ReadFrom(buf)
-	util.ErrorPanic(err)
-	fmt.Println("udpServerHandleData received:", string(buf[0:n]))
-
-	outstr <- string(buf[0:n])
+func init() {
+	AllServers = StartServers(config.TheExeConfig)
 }
 
 func TestUdpConn(t *testing.T) {
-	t.Log("TestUdpConn start ")
-	svrConn := udpServerConn()
-	output := make(chan string)
 
-	go udpServerHandleData(svrConn, output)
-
-	cltConn := udpClientConn()
-
-	expectedStr := "hello\n"
-
-	fmt.Println("server conn addr:", svrConn.Conn.LocalAddr())
-	n, err := cltConn.WriteTo([]byte(expectedStr), svrConn.Conn.LocalAddr())
-	util.ErrorPanic(err)
-	fmt.Println("finished writeTo ", n)
-
-	var outputStr string
-	outputStr = <-output
-
-	cltConn.Close()
-
-	svrConn.Close()
-
-	if expectedStr != outputStr {
-		t.Log("expectedStr:(", expectedStr, ")")
-		t.Log("outputStr:(", outputStr, ")")
-		t.Fail()
+	raddr, _ := net.ResolveUDPAddr(UDP.String(), ServerAddress)
+	client, err := CreateUdpServer(ClientAddress)
+	if err != nil {
+		t.Fatal("create udp client side endpoint failed")
 	}
+	_, err = client.UdpConn.WriteTo([]byte(util.CookSipMsg(SipMessageInvite)), raddr)
+	if err != nil {
+		t.Fatal("sending data failed")
+	}
+	msg := FetchSipMessage()
+	if msg.MsgType != coding.MsgTypeRequest {
+		t.Fatal("getting message failed")
+	}
+	if string(msg.BodyContent) != "hello" {
+		t.Log("body len", len(msg.BodyContent))
+		t.Fatal("getting message body failed", string(msg.BodyContent))
+	}
+
 }
 
 func TestTcpConn(t *testing.T) {
 
-	svr := tcpServer()
+	client, err := CreateTcpConnection(ServerAddress)
 
-	output := make(chan string)
-
-	go tcpserverHandleConnection(svr, output)
-
-	clt := tcpClient()
-
-	writer := clt.Writer()
-
-	expectedStr := "hello\n"
-
-	writer.WriteString(expectedStr)
-	writer.Flush() //flush is mandatory
-
-	var outputStr string
-	outputStr = <-output
-
-	clt.Close()
-
-	svr.Close()
-
-	if expectedStr != outputStr {
-		t.Log("expectedStr:(", expectedStr, ")")
-		t.Log("outputStr:(", outputStr, ")")
-		t.Fail()
+	if err != nil {
+		t.Fatal("create TCP client side endpoint failed")
 	}
+
+	buff := bufio.NewWriter(client.Conn)
+	_, err = buff.WriteString(util.CookSipMsg(SipMessage200OK))
+
+	if err != nil {
+		t.Fatal("sending data failed", err)
+	}
+	err = buff.Flush()
+	if err != nil {
+		t.Fatal("flush data failed", err)
+	}
+	msg := FetchSipMessage()
+	if msg.MsgType != coding.MsgTypeResponse {
+		t.Fatal("getting message failed")
+	}
+	if string(msg.BodyContent) != "hello" {
+		t.Log("body len", len(msg.BodyContent))
+		t.Fatal("getting message body failed", string(msg.BodyContent))
+	}
+
 }
