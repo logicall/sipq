@@ -122,7 +122,7 @@ func fetchSipMessageFromReader(reader io.Reader, transportType TransportType) (*
 				trace.Trace.Println(coding.ErrInvalidLine)
 				return nil, coding.ErrInvalidLine
 			}
-			if line[lineLen-2:lineLen] != coding.CRLF {
+			if !strings.HasSuffix(line, coding.CRLF) {
 				trace.Trace.Println(coding.ErrInvalidLine)
 				return nil, coding.ErrInvalidLine
 			}
