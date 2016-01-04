@@ -2,6 +2,8 @@ package util
 
 import (
 	"sipq/trace"
+
+	"bytes"
 	"strings"
 )
 
@@ -23,8 +25,23 @@ func StrTrim(s string) string {
 	return strings.Trim(s, " \t\r\n")
 }
 
-//replace \n with \r\n
-//might need to be refactored for messages with "\r\n"
+//replace \n with \r\n.
+//if it is already "\r\n", then takes no effect.
 func CookSipMsg(s string) string {
-	return strings.Replace(s, "\n", "\r\n", -1)
+	var buf bytes.Buffer
+	lines := strings.Split(s, "\n")
+
+	for i, line := range lines {
+		buf.WriteString(line)
+		if i == len(lines)-1 {
+			break //on last line
+		}
+		if strings.HasSuffix(line, "\r") {
+			buf.WriteString("\n")
+		} else {
+			buf.WriteString("\r\n")
+		}
+	}
+
+	return buf.String()
 }
