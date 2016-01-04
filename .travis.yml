@@ -1,2 +1,4 @@
 language: go
-go_import_path: github.com/henryscala/sipq 
+go:
+  - tip 
+

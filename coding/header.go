@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"sipq/util"
+	"github.com/henryscala/sipq/util"
 )
 
 const (

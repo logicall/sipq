@@ -1,7 +1,7 @@
 package util
 
 import (
-	"sipq/trace"
+	"github.com/henryscala/sipq/trace"
 
 	"bytes"
 	"strings"

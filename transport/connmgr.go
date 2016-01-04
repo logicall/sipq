@@ -5,11 +5,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sipq/coding"
-	"sipq/trace"
-	"sipq/util"
-	"sync"
 	"strings"
+	"sync"
+
+	"github.com/henryscala/sipq/coding"
+	"github.com/henryscala/sipq/trace"
+	"github.com/henryscala/sipq/util"
 )
 
 type Connections struct {

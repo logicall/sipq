@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"sipq/util"
+	"github.com/henryscala/sipq/util"
 
 	"github.com/naoina/toml"
 )

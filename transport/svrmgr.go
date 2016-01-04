@@ -2,10 +2,11 @@ package transport
 
 import (
 	"fmt"
-	"sipq/config"
-	"sipq/trace"
-	"sipq/util"
 	"sync"
+
+	"github.com/henryscala/sipq/config"
+	"github.com/henryscala/sipq/trace"
+	"github.com/henryscala/sipq/util"
 )
 
 type Servers struct {

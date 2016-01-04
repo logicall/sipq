@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 
-	"sipq/config"
-	"sipq/trace"
-	"sipq/transport"
-	"sipq/util"
+	"github.com/henryscala/sipq/config"
+	"github.com/henryscala/sipq/trace"
+	"github.com/henryscala/sipq/transport"
+	"github.com/henryscala/sipq/util"
 )
 
 func main() {

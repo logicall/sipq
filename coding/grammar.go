@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"sipq/trace"
+	"github.com/henryscala/sipq/trace"
 )
 
 //Grammar

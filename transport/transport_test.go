@@ -6,9 +6,9 @@ import (
 	"net"
 	"testing"
 
-	"sipq/coding"
-	"sipq/config"
-	"sipq/util"
+	"github.com/henryscala/sipq/coding"
+	"github.com/henryscala/sipq/config"
+	"github.com/henryscala/sipq/util"
 )
 
 var SipMessageInvite string = `

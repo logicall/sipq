@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"sipq/util"
+	"github.com/henryscala/sipq/util"
 )
 
 //for testing my regexp skills
