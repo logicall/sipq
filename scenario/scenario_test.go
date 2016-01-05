@@ -46,8 +46,8 @@ hello
 		recv("200");
 		send(msg2);
 	`
-	t.Log(scenario)
-	err := RunText(scenario)
+
+	err := LoadText(scenario)
 	if err != nil {
 		t.Error("not expected", err)
 	}

@@ -61,4 +61,5 @@ func init() {
 
 	TheExeConfig, err = readExeConfigBytes([]byte(DefaultConfig))
 	util.ErrorPanic(err)
+
 }
