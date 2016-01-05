@@ -54,7 +54,7 @@ func FetchSipMessage() *coding.SipMessage {
 }
 
 //if error is EOF, need to handle specially
-func fetchSipMessageFromReader(reader io.Reader, transportType TransportType) (*coding.SipMessage, error) {
+func FetchSipMessageFromReader(reader io.Reader, transportType TransportType) (*coding.SipMessage, error) {
 
 	var bufReader *bufio.Reader
 
@@ -233,7 +233,7 @@ func handleNewData(conn *Connection) {
 		case TCP:
 			laddr := conn.Conn.LocalAddr()
 			raddr := conn.Conn.RemoteAddr()
-			msg, err := fetchSipMessageFromReader(conn.Conn, TCP)
+			msg, err := FetchSipMessageFromReader(conn.Conn, TCP)
 			if err != nil && err != io.EOF {
 				conn.Close()
 				return
@@ -256,7 +256,7 @@ func handleNewData(conn *Connection) {
 				continue
 			}
 			udpReader := bytes.NewReader(buf[:n])
-			msg, err := fetchSipMessageFromReader(udpReader, UDP)
+			msg, err := FetchSipMessageFromReader(udpReader, UDP)
 			if err != nil && err != io.EOF {
 				trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
 				return
