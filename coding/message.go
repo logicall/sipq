@@ -1,8 +1,14 @@
 package coding
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"net"
 	"strings"
+
+	"github.com/henryscala/sipq/trace"
+	"github.com/henryscala/sipq/util"
 )
 
 //Message
@@ -86,4 +92,175 @@ func (msg *SipMessage) Add(headerName, headerValue string) {
 		hdr := &SipHeaderCommon{StrName: headerName, StrValue: headerValue}
 		msg.HeaderMap[headerKey] = hdr
 	}
+}
+
+//if error is EOF, need to handle specially
+func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMessage, error) {
+
+	var bufReader *bufio.Reader
+
+	bufReader = bufio.NewReader(reader)
+
+	const (
+		expectingStartLine int = iota
+		expectingHeader
+		expectingBody
+	)
+
+	var sipMessage *SipMessage = &SipMessage{}
+	var lineCache string // catche a line to handle the folding case
+	var line string      //currently handling line
+	var lineLen int      //length of the currently handling line
+	var err error
+	var state int
+	var contentLengthHdr *SipHeaderContentLength
+	var hdr SipHeader
+
+	parseAndAddHeader := func(line string) error {
+		//regard the content in the cache as a complete line
+		hdr, err = ParseHeader(line)
+		if err != nil {
+			trace.Trace.Println(ErrInvalidLine, line)
+			return ErrInvalidLine
+		}
+		sipMessage.AddHeader(hdr)
+		return nil
+	}
+
+	state = expectingStartLine
+	for {
+		switch state {
+		case expectingStartLine:
+			line, err = bufReader.ReadString(LF[0])
+
+			if err != nil {
+				return nil, err
+			}
+			lineLen = len(line)
+			if lineLen < 2 {
+				//tolerate empty line
+				if util.StrTrim(line) == "" {
+					continue
+				} else {
+					return nil, ErrInvalidLine
+				}
+			}
+			if !strings.HasSuffix(line, CRLF) {
+				trace.Trace.Println(ErrInvalidLine)
+				return nil, ErrInvalidLine
+			}
+			line = util.StrTrim(line)
+			if line == "" {
+				continue
+			}
+
+			startLine, msgType, err := ParseStartLine(line)
+			if err != nil {
+				trace.Trace.Println(err)
+				return nil, err
+			}
+			sipMessage.MsgType = msgType
+			sipMessage.StartLine = startLine
+			state = expectingHeader
+		case expectingHeader:
+			line, err = bufReader.ReadString(LF[0])
+
+			if err != nil {
+				if err == io.EOF {
+					return sipMessage, err
+				}
+				return nil, err
+			}
+			lineLen = len(line)
+			if lineLen < 2 {
+				trace.Trace.Println(ErrInvalidLine)
+				return nil, ErrInvalidLine
+			}
+			if !strings.HasSuffix(line, CRLF) {
+				trace.Trace.Println(ErrInvalidLine)
+				return nil, ErrInvalidLine
+			}
+			if lineLen == 2 {
+				if lineCache != "" {
+					err = parseAndAddHeader(lineCache)
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				state = expectingBody
+				hdr, err = sipMessage.GetHeader(HdrContentLength)
+				switch isStreamTransport {
+				case true:
+					if err != nil {
+						continue
+					}
+				//content length header is mandatory for stream based transport
+				default:
+
+					if err != nil {
+						return nil, ErrInvalidMsg
+					}
+
+				}
+				contentLengthHdr = hdr.(*SipHeaderContentLength)
+				continue
+			}
+
+			// cache the line
+			if lineCache == "" {
+				lineCache = line
+				continue
+			}
+
+			// append the line to cache
+			if strings.HasPrefix(line, SP) ||
+				strings.HasPrefix(line, TAB) {
+				lineCache = util.StrTrim(lineCache) + SP + line
+				continue
+			}
+
+			//regard the content in the cache as a complete line
+			err = parseAndAddHeader(lineCache)
+
+			if err != nil {
+				trace.Trace.Println(ErrInvalidLine, lineCache)
+				return nil, ErrInvalidLine
+			}
+
+			// cache the new line
+			lineCache = line
+
+		case expectingBody:
+			for {
+
+				b, err := bufReader.ReadByte()
+				if err != nil {
+					if err == io.EOF {
+						switch isStreamTransport {
+						case true:
+							return sipMessage, err
+						default:
+							if len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
+								return sipMessage, err
+							} else {
+								trace.Trace.Println(ErrInvalidMsg)
+								return nil, ErrInvalidMsg
+							}
+						}
+					}
+					trace.Trace.Println(ErrInvalidMsg)
+					return nil, ErrInvalidMsg
+				}
+				if contentLengthHdr != nil && len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
+					return sipMessage, nil
+				}
+				sipMessage.BodyContent = append(sipMessage.BodyContent, b)
+			} //inner for
+		} //switch
+	} //for
+
+	err = fmt.Errorf("unexpected")
+	panic(err)
+	return nil, err
 }

@@ -1,11 +1,10 @@
 package transport
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
+
 	"io"
-	"strings"
+
 	"sync"
 
 	"github.com/henryscala/sipq/coding"
@@ -53,177 +52,6 @@ func FetchSipMessage() *coding.SipMessage {
 	return &msg
 }
 
-//if error is EOF, need to handle specially
-func FetchSipMessageFromReader(reader io.Reader, transportType TransportType) (*coding.SipMessage, error) {
-
-	var bufReader *bufio.Reader
-
-	bufReader = bufio.NewReader(reader)
-
-	const (
-		expectingStartLine int = iota
-		expectingHeader
-		expectingBody
-	)
-
-	var sipMessage *coding.SipMessage = &coding.SipMessage{}
-	var lineCache string // catche a line to handle the folding case
-	var line string      //currently handling line
-	var lineLen int      //length of the currently handling line
-	var err error
-	var state int
-	var contentLengthHdr *coding.SipHeaderContentLength
-	var hdr coding.SipHeader
-
-	parseAndAddHeader := func(line string) error {
-		//regard the content in the cache as a complete line
-		hdr, err = coding.ParseHeader(line)
-		if err != nil {
-			trace.Trace.Println(coding.ErrInvalidLine, line)
-			return coding.ErrInvalidLine
-		}
-		sipMessage.AddHeader(hdr)
-		return nil
-	}
-
-	state = expectingStartLine
-	for {
-		switch state {
-		case expectingStartLine:
-			line, err = bufReader.ReadString(coding.LF[0])
-
-			if err != nil {
-				return nil, err
-			}
-			lineLen = len(line)
-			if lineLen < 2 {
-				//tolerate empty line
-				if util.StrTrim(line) == "" {
-					continue
-				} else {
-					return nil, coding.ErrInvalidLine
-				}
-			}
-			if !strings.HasSuffix(line, coding.CRLF) {
-				trace.Trace.Println(coding.ErrInvalidLine)
-				return nil, coding.ErrInvalidLine
-			}
-			line = util.StrTrim(line)
-			if line == "" {
-				continue
-			}
-
-			startLine, msgType, err := coding.ParseStartLine(line)
-			if err != nil {
-				trace.Trace.Println(err)
-				return nil, err
-			}
-			sipMessage.MsgType = msgType
-			sipMessage.StartLine = startLine
-			state = expectingHeader
-		case expectingHeader:
-			line, err = bufReader.ReadString(coding.LF[0])
-
-			if err != nil {
-				if err == io.EOF {
-					return sipMessage, err
-				}
-				return nil, err
-			}
-			lineLen = len(line)
-			if lineLen < 2 {
-				trace.Trace.Println(coding.ErrInvalidLine)
-				return nil, coding.ErrInvalidLine
-			}
-			if !strings.HasSuffix(line, coding.CRLF) {
-				trace.Trace.Println(coding.ErrInvalidLine)
-				return nil, coding.ErrInvalidLine
-			}
-			if lineLen == 2 {
-				if lineCache != "" {
-					err = parseAndAddHeader(lineCache)
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				state = expectingBody
-				hdr, err = sipMessage.GetHeader(coding.HdrContentLength)
-				switch transportType {
-				case UDP, SCTP:
-					if err != nil {
-						continue
-					}
-				//content length header is mandatory for stream based transport
-				default:
-
-					if err != nil {
-						return nil, coding.ErrInvalidMsg
-					}
-
-				}
-				contentLengthHdr = hdr.(*coding.SipHeaderContentLength)
-				continue
-			}
-
-			// cache the line
-			if lineCache == "" {
-				lineCache = line
-				continue
-			}
-
-			// append the line to cache
-			if strings.HasPrefix(line, coding.SP) ||
-				strings.HasPrefix(line, coding.TAB) {
-				lineCache = util.StrTrim(lineCache) + coding.SP + line
-				continue
-			}
-
-			//regard the content in the cache as a complete line
-			err = parseAndAddHeader(lineCache)
-
-			if err != nil {
-				trace.Trace.Println(coding.ErrInvalidLine, lineCache)
-				return nil, coding.ErrInvalidLine
-			}
-
-			// cache the new line
-			lineCache = line
-
-		case expectingBody:
-			for {
-
-				b, err := bufReader.ReadByte()
-				if err != nil {
-					if err == io.EOF {
-						switch transportType {
-						case UDP, SCTP:
-							return sipMessage, err
-						default:
-							if len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
-								return sipMessage, err
-							} else {
-								trace.Trace.Println(coding.ErrInvalidMsg)
-								return nil, coding.ErrInvalidMsg
-							}
-						}
-					}
-					trace.Trace.Println(coding.ErrInvalidMsg)
-					return nil, coding.ErrInvalidMsg
-				}
-				if contentLengthHdr != nil && len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
-					return sipMessage, nil
-				}
-				sipMessage.BodyContent = append(sipMessage.BodyContent, b)
-			} //inner for
-		} //switch
-	} //for
-
-	err = fmt.Errorf("unexpected")
-	panic(err)
-	return nil, err
-}
-
 //should be called in a go routine, since it is blocking
 func handleNewData(conn *Connection) {
 	var buf []byte = make([]byte, coding.MaxUdpPacketLen)
@@ -233,7 +61,7 @@ func handleNewData(conn *Connection) {
 		case TCP:
 			laddr := conn.Conn.LocalAddr()
 			raddr := conn.Conn.RemoteAddr()
-			msg, err := FetchSipMessageFromReader(conn.Conn, TCP)
+			msg, err := coding.FetchSipMessageFromReader(conn.Conn, true)
 			if err != nil && err != io.EOF {
 				conn.Close()
 				return
@@ -256,7 +84,7 @@ func handleNewData(conn *Connection) {
 				continue
 			}
 			udpReader := bytes.NewReader(buf[:n])
-			msg, err := FetchSipMessageFromReader(udpReader, UDP)
+			msg, err := coding.FetchSipMessageFromReader(udpReader, false)
 			if err != nil && err != io.EOF {
 				trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
 				return
