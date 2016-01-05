@@ -26,6 +26,8 @@ Welcome any contributations!
 
 [A golang toml implementation](https://github.com/naoina/toml)
 
+[A golang js implementation](https://github.com/robertkrimen/otto)
+
 # Contributors 
 
 [Tao Keqin](https://github.com/taokeqin)
