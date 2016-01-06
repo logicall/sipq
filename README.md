@@ -4,7 +4,7 @@
 
 SIPq is an implementation of a test tool for SIP protocol. Its ambition is to be a next generation of [SIPp](http://sipp.sourceforge.net/). There is for sure a long way to go. Since we are not awaiting the rice to be cooked, the primary purpose of it for now is for study, on how to design a SIP stack or test tool. If you want to do something serious, go for [SIPp](http://sipp.sourceforge.net/). 
 
-SIPq is designed in mind as a SIP test tool, but components of it are also able to serve as a SIP stack. It should be practical to be make it into use to construct a SIP application, since the source codes are organized in [golang](https://golang.org/) packages. 
+SIPq is designed in mind as a SIP test tool, but components of it are also able to serve as a SIP stack. It should be practical to make it into use to construct a SIP application, since the source codes are organized in [golang](https://golang.org/) packages. 
 
 Welcome any contributions! 
 
