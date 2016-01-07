@@ -14,7 +14,7 @@ func main() {
 	trace.Trace.Println("sipq started")
 	defer trace.Trace.Println("sipq exited")
 
-	if *config.ConfigFileExample {
+	if config.ConfigFileExample {
 		fmt.Println(config.DefaultConfig)
 		return
 	}

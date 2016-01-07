@@ -6,21 +6,23 @@ import (
 )
 
 var (
-	ConfigFile        *string = flag.String("f", "", "the config file of sipq")
-	ConfigFileExample *bool   = flag.Bool("cfg-example", false, "show a config file example")
-	TransportType     *string = flag.String("t", "udp", "transport type to run the scenario")
-	ScenarioFile      *string = flag.String("s", "", "the text file that contains description of scenarios")
+	ConfigFile        string
+	ConfigFileExample bool
+	TransportType     string
+	ScenarioFile      string
 )
 
 func init() {
+	flag.StringVar(&ConfigFile, "f", "", "the config file of sipq")
+	flag.BoolVar(&ConfigFileExample, "cfg-example", false, "show a config file example")
+	flag.StringVar(&TransportType, "t", "udp", "transport type to run the scenario")
+	flag.StringVar(&ScenarioFile, "s", "", "the text file that contains description of scenarios")
+
 	flag.Parse()
 }
 
 func IsStreamTransport() bool {
-	if TransportType == nil {
-		return false
-	}
-	s := strings.ToLower(*TransportType)
+	s := strings.ToLower(TransportType)
 	switch s {
 	case "udp":
 		return false
