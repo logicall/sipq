@@ -48,6 +48,13 @@ func (conn *Connection) ReadFrom(buf []byte) (int, net.Addr, error) {
 	return n, addr, err
 }
 
+//used by TCP
+func (conn *Connection) Write(buf []byte) (int, error) {
+	var tcpConn *net.TCPConn = conn.Conn.(*net.TCPConn)
+	n, err := tcpConn.Write(buf)
+	return n, err
+}
+
 func (conn *Connection) Close() {
 	conn.Conn.Close() //ignore error
 	allConnections.Remove(conn)

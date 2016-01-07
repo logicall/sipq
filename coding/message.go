@@ -94,6 +94,19 @@ func (msg *SipMessage) Add(headerName, headerValue string) {
 	}
 }
 
+func (msg *SipMessage) Stringify() string {
+	var msgstr string
+	msgstr += msg.StartLine.Stringify() + CRLF
+	for _, hdr := range msg.HeaderMap {
+		msgstr += hdr.Stringify()
+	}
+	if len(msg.BodyContent) > 0 {
+		msgstr += "\r\n"
+		msgstr += string(msg.BodyContent)
+	}
+	return msgstr
+}
+
 //if error is EOF, need to handle specially
 func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMessage, error) {
 
