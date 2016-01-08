@@ -17,9 +17,9 @@ func init() {
 }
 
 func IsStreamTransport() bool {
-	if TransportType == nil {
+	/*if TransportType == nil {
 		return false
-	}
+	}*/
 	s := strings.ToLower(*TransportType)
 	switch s {
 	case "udp":
