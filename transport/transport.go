@@ -57,7 +57,7 @@ func (conn *Connection) Write(buf []byte) (int, error) {
 
 func (conn *Connection) Close() {
 	conn.Conn.Close() //ignore error
-	allConnections.Remove(conn)
+	allConnections.RemoveItem(conn)
 }
 
 func (svr *Server) String() string {

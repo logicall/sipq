@@ -2,63 +2,41 @@ package transport
 
 import (
 	"bytes"
+	"fmt"
 
 	"io"
 
 	"net"
-	"sync"
 
 	"github.com/henryscala/sipq/coding"
 	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/util"
+	"github.com/henryscala/sipq/util/concurrent"
 )
 
-type Connections struct {
-	connsLock sync.Mutex
-	conns     []*Connection
-}
+var (
+	//store all connections of any transport type
+	allConnections *concurrent.List = concurrent.NewList()
 
-func (conns *Connections) Remove(conn *Connection) {
-	conns.connsLock.Lock()
-	defer conns.connsLock.Unlock()
+	//to communicate with comsumers of sip message
+	sipMsgChan chan coding.SipMessage = make(chan coding.SipMessage)
 
-	var i int
-	for i = 0; i < len(conns.conns); i++ {
-		if conns.conns[i] == conn {
-			break
-		}
-	}
-	if i >= len(conns.conns) {
-		trace.Trace.Fatalln(conn, "does not exist")
-	}
-	conns.conns = append(conns.conns[0:i], conns.conns[i+1:]...)
-}
+	ErrTransport error = fmt.Errorf("some error happened on transport")
+)
 
-func (conns *Connections) Add(conn *Connection) {
-	conns.connsLock.Lock()
-	defer conns.connsLock.Unlock()
-	conns.conns = append(conns.conns, conn)
-}
-
-//finding a established connection using local and remote address
-func (conns *Connections) Find(localAddr net.Addr, remoteAddr net.Addr) *Connection {
-	conns.connsLock.Lock()
-	defer conns.connsLock.Unlock()
-	for _, conn := range conns.conns {
-		laddr := conn.Conn.LocalAddr()
-		raddr := conn.Conn.RemoteAddr()
+//for finding a established connection using local and remote address
+func sameLocalRemoteAddrFunc(localAddr net.Addr, remoteAddr net.Addr) func(interface{}) bool {
+	return func(conn interface{}) bool {
+		c := conn.(*Connection)
+		laddr := c.Conn.LocalAddr()
+		raddr := c.Conn.RemoteAddr()
 		if localAddr.String() == laddr.String() && remoteAddr.String() == raddr.String() {
-			return conn
+			return true
 		}
+		return false
 	}
-	return nil
+
 }
-
-//store all connections of any transport type
-var allConnections *Connections = &Connections{}
-
-//to communicate with comsumers of sip message
-var sipMsgChan chan coding.SipMessage = make(chan coding.SipMessage)
 
 //This function is blocking.
 //Serves as interface toward transport users.
@@ -72,7 +50,12 @@ func FetchSipMessage() *coding.SipMessage {
 //Serves as interface toward transport users.
 func SendTcp(msg *coding.SipMessage) (int, error) {
 	//find connection
-	conn := allConnections.Find(msg.LocalAddr, msg.RemoteAddr)
+	result, ok := allConnections.FindItemBy(sameLocalRemoteAddrFunc(msg.LocalAddr, msg.RemoteAddr))
+	if !ok {
+		return -1, ErrTransport
+	}
+	conn := result.(*Connection)
+
 	//convert SipMessage for transfer on the wire
 	//put the load on the wire
 	return conn.Write([]byte(msg.String()))
