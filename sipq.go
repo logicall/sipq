@@ -14,14 +14,14 @@ func main() {
 	trace.Trace.Println("sipq started")
 	defer trace.Trace.Println("sipq exited")
 
-	if *config.ConfigFileExample {
+	if config.ConfigFileExample {
 		fmt.Println(config.DefaultConfig)
 		return
 	}
 
 	var err error
-	if *config.ConfigFile != "" {
-		config.TheExeConfig, err = config.ReadExeConfigFile(*config.ConfigFile)
+	if config.ConfigFile != "" {
+		config.TheExeConfig, err = config.ReadExeConfigFile(config.ConfigFile)
 		util.ErrorPanic(err)
 	}
 	transport.AllServers = transport.StartServers(config.TheExeConfig)

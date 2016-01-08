@@ -5,6 +5,7 @@ import (
 
 	"io"
 
+	"net"
 	"sync"
 
 	"github.com/henryscala/sipq/coding"
@@ -32,10 +33,25 @@ func (conns *Connections) Remove(conn *Connection) {
 	}
 	conns.conns = append(conns.conns[0:i], conns.conns[i+1:]...)
 }
+
 func (conns *Connections) Add(conn *Connection) {
 	conns.connsLock.Lock()
 	defer conns.connsLock.Unlock()
 	conns.conns = append(conns.conns, conn)
+}
+
+//finding a established connection using local and remote address
+func (conns *Connections) Find(localAddr net.Addr, remoteAddr net.Addr) *Connection {
+	conns.connsLock.Lock()
+	defer conns.connsLock.Unlock()
+	for _, conn := range conns.conns {
+		laddr := conn.Conn.LocalAddr()
+		raddr := conn.Conn.RemoteAddr()
+		if localAddr.String() == laddr.String() && remoteAddr.String() == raddr.String() {
+			return conn
+		}
+	}
+	return nil
 }
 
 //store all connections of any transport type
@@ -50,6 +66,16 @@ func FetchSipMessage() *coding.SipMessage {
 	var msg coding.SipMessage
 	msg = <-sipMsgChan
 	return &msg
+}
+
+//This function is blocking.
+//Serves as interface toward transport users.
+func SendTcp(msg *coding.SipMessage) (int, error) {
+	//find connection
+	conn := allConnections.Find(msg.LocalAddr, msg.RemoteAddr)
+	//convert SipMessage for transfer on the wire
+	//put the load on the wire
+	return conn.Write([]byte(msg.String()))
 }
 
 //should be called in a go routine, since it is blocking

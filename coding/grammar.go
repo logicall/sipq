@@ -48,13 +48,27 @@ var (
 	ErrInvalidMsg  error = fmt.Errorf("invalid message")
 )
 
-type StartLine interface{}
+type StartLine interface {
+	String() string
+}
+
 type RequestLine struct {
 	Method, Uri, Version string
 }
+
 type StatusLine struct {
 	Version, Reason string
 	Status          int
+}
+
+func (reql *RequestLine) String() string {
+	s := fmt.Sprintf("%s %s %s", reql.Method, reql.Uri, reql.Version)
+	return s
+}
+
+func (stl *StatusLine) String() string {
+	s := fmt.Sprintf("%s %d %s", stl.Version, stl.Status, stl.Reason)
+	return s
 }
 
 func ParseStartLine(line string) (startLine StartLine, msgType int, err error) {
