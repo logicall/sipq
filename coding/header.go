@@ -40,7 +40,7 @@ type SipHeader interface {
 	Value() string
 	SetName(s string)
 	SetValue(s string)
-	Stringify() string
+	String() string
 }
 
 type SipHeaderCommon struct {
@@ -73,7 +73,7 @@ func (hdr *SipHeaderCommon) Value() string {
 	return hdr.StrValue
 }
 
-func (hdr *SipHeaderCommon) Stringify() string {
+func (hdr *SipHeaderCommon) String() string {
 	values := strings.Split(hdr.StrValue, HeaderValueSep)
 	var hdrstr string
 	for _, value := range values {

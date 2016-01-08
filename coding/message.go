@@ -94,14 +94,14 @@ func (msg *SipMessage) Add(headerName, headerValue string) {
 	}
 }
 
-func (msg *SipMessage) Stringify() string {
+func (msg *SipMessage) String() string {
 	var msgstr string
-	msgstr += msg.StartLine.Stringify() + CRLF
+	msgstr += msg.StartLine.String() + CRLF
 	for _, hdr := range msg.HeaderMap {
-		msgstr += hdr.Stringify()
+		msgstr += hdr.String()
 	}
 	if len(msg.BodyContent) > 0 {
-		msgstr += "\r\n"
+		msgstr += CRLF
 		msgstr += string(msg.BodyContent)
 	}
 	return msgstr

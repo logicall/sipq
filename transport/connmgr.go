@@ -75,7 +75,7 @@ func SendTcp(msg *coding.SipMessage) (int, error) {
 	conn := allConnections.Find(msg.LocalAddr, msg.RemoteAddr)
 	//convert SipMessage for transfer on the wire
 	//put the load on the wire
-	return conn.Write([]byte(msg.Stringify()))
+	return conn.Write([]byte(msg.String()))
 }
 
 //should be called in a go routine, since it is blocking

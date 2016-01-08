@@ -26,8 +26,8 @@ hello
 func TestSipMsgStringify(t *testing.T) {
 	rawmsg := util.CookSipMsg(SipMessageInvite)
 	msgObj, _ := FetchSipMessageFromReader(bytes.NewReader([]byte(rawmsg)), true)
-	msgStrOnTheWire := msgObj.Stringify()
-	fmt.Println(msgStrOnTheWire)
+	fmt.Println(msgObj)
+	msgStrOnTheWire := msgObj.String()
 	//try to feed the stringified msg again, to see if it's right
 	newMsgObj, _ := FetchSipMessageFromReader(bytes.NewReader([]byte(msgStrOnTheWire)), true)
 	if string(newMsgObj.BodyContent) != "hello" {

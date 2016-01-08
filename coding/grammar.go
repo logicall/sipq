@@ -49,7 +49,7 @@ var (
 )
 
 type StartLine interface {
-	Stringify() string
+	String() string
 }
 
 type RequestLine struct {
@@ -61,12 +61,12 @@ type StatusLine struct {
 	Status          int
 }
 
-func (reql *RequestLine) Stringify() string {
+func (reql *RequestLine) String() string {
 	s := fmt.Sprintf("%s %s %s", reql.Method, reql.Uri, reql.Version)
 	return s
 }
 
-func (stl *StatusLine) Stringify() string {
+func (stl *StatusLine) String() string {
 	s := fmt.Sprintf("%s %d %s", stl.Version, stl.Status, stl.Reason)
 	return s
 }
