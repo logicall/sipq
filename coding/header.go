@@ -1,6 +1,7 @@
 package coding
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,7 +41,8 @@ type SipHeader interface {
 	Value() string
 	SetName(s string)
 	SetValue(s string)
-	String() string
+
+	fmt.Stringer
 }
 
 type SipHeaderCommon struct {

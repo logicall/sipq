@@ -28,6 +28,21 @@ Welcome any contributions!
 
 [A golang js implementation](https://github.com/robertkrimen/otto)
 
+# Build 
+
+- setup golang and set a GOPATH environment variable 
+- run the following commands
+
+```
+go get -u github.com/naoina/toml
+go get -u github.com/robertkrimen/otto
+go get -u github.com/henryscala/sipq
+cd $GOPATH/src/github.com/henryscala/sipq
+
+go test ./.. 
+go build
+````
+
 # Contributors 
 
 [Tao Keqin](https://github.com/taokeqin)
