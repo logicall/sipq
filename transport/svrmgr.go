@@ -2,28 +2,17 @@ package transport
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/henryscala/sipq/config"
 	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/util"
+	"github.com/henryscala/sipq/util/concurrent"
 )
 
-type Servers struct {
-	serversLock sync.Mutex
-	servers     []*Server
-}
+var AllServers *concurrent.List = concurrent.NewList()
 
-func (svrs *Servers) Add(svr *Server) {
-	svrs.serversLock.Lock()
-	svrs.servers = append(svrs.servers, svr)
-	svrs.serversLock.Unlock()
-}
-
-var AllServers *Servers = &Servers{}
-
-func StartServers(cfg *config.ExeConfig) *Servers {
-	var servers []*Server
+func StartServers(cfg *config.ExeConfig) *concurrent.List {
+	list := concurrent.NewList()
 	var server *Server
 	var err error
 	for _, svrCfg := range cfg.Server {
@@ -39,7 +28,7 @@ func StartServers(cfg *config.ExeConfig) *Servers {
 
 		}
 		util.ErrorPanic(err)
-		servers = append(servers, server)
+		list.Add(server)
 	}
-	return &Servers{servers: servers}
+	return list
 }
