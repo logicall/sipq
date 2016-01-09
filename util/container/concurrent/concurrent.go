@@ -180,6 +180,12 @@ func (m *Map) Len() int {
 	return len(m.items)
 }
 
+func (m *Map) Del(key interface{}) {
+	m.Lock()
+	defer m.Unlock()
+	delete(m.items, key)
+}
+
 func (m *Map) IterPair() <-chan container.Pair {
 	m.Lock()
 

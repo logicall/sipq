@@ -56,4 +56,10 @@ func TestMap(t *testing.T) {
 			t.Error("not expected")
 		}
 	}
+
+	m.Del("0")
+	_, ok = m.Get("0")
+	if ok {
+		t.Error("not expected")
+	}
 }

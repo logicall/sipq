@@ -1,10 +1,16 @@
 package util
 
 import (
+	"fmt"
+
 	"github.com/henryscala/sipq/trace"
 
 	"bytes"
 	"strings"
+)
+
+var (
+	uuidNum int
 )
 
 func ErrorPanic(err error) {
@@ -44,4 +50,10 @@ func CookSipMsg(s string) string {
 	}
 
 	return buf.String()
+}
+
+//temporarily solution
+func UUID() string {
+	uuidNum++
+	return fmt.Sprint(uuidNum)
 }
