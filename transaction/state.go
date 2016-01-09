@@ -8,28 +8,32 @@ const (
 )
 
 const (
-	ICTCalling int = iota
+	ICTIdle int = iota
+	ICTCalling
 	ICTProceeding
 	ICTCompleted
 	ICTTerminated
 )
 
 const (
-	ISTProceeding int = iota
+	ISTIdle int = iota
+	ISTProceeding
 	ISTCompleted
 	ISTConfirmed
 	ISTTerminated
 )
 
 const (
-	NICTTrying int = iota
+	NICTIdle int = iota
+	NICTTrying
 	NICTProceeding
 	NICTCompleted
 	NICTTerminated
 )
 
 const (
-	NISTTrying int = iota
+	NISTIdle int = iota
+	NISTTrying
 	NISTProceeding
 	NISTCompleted
 	NISTTerminated

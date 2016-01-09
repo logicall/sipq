@@ -84,6 +84,22 @@ func (hdr *SipHeaderCommon) String() string {
 	return hdrstr
 }
 
+type SipHeaderVia struct {
+}
+
+type SipHeaderContentLength struct {
+	SipHeaderCommon
+}
+
+func (hdr *SipHeaderContentLength) Name() string {
+	return HdrContentLength
+}
+
+func (hdr *SipHeaderContentLength) Length() int {
+	l, _ := strconv.Atoi(hdr.StrValue)
+	return l
+}
+
 func ParseHeader(line string) (SipHeader, error) {
 	result := reHeader.FindStringSubmatch(line)
 	if result == nil {
@@ -103,19 +119,6 @@ func ParseHeader(line string) (SipHeader, error) {
 		return nil, err
 	}
 	return hdr, nil
-}
-
-type SipHeaderContentLength struct {
-	SipHeaderCommon
-}
-
-func (hdr *SipHeaderContentLength) Name() string {
-	return HdrContentLength
-}
-
-func (hdr *SipHeaderContentLength) Length() int {
-	l, _ := strconv.Atoi(hdr.StrValue)
-	return l
 }
 
 func parseHeaderContentLength(value string) (*SipHeaderContentLength, error) {

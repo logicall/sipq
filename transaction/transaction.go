@@ -29,6 +29,14 @@ func (t *Transaction) changeState(destState int) {
 	t.state = destState
 }
 
+func (t *Transaction) mICTIdleHandleMessage(msg *coding.SipMessage) {
+	switch msg.MsgType {
+	case coding.MsgTypeRequest:
+	default:
+	}
+
+}
+
 func (t *Transaction) mICTCallingHandleMessage(msg *coding.SipMessage) {
 
 }
