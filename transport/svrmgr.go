@@ -6,7 +6,7 @@ import (
 	"github.com/henryscala/sipq/config"
 	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/util"
-	"github.com/henryscala/sipq/util/concurrent"
+	"github.com/henryscala/sipq/util/container/concurrent"
 )
 
 var AllServers *concurrent.List = concurrent.NewList()

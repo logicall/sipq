@@ -39,7 +39,7 @@ go get -u github.com/robertkrimen/otto
 go get -u github.com/henryscala/sipq
 cd $GOPATH/src/github.com/henryscala/sipq
 
-go test ./.. 
+go test ./...
 go build
 ```
 

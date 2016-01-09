@@ -1,6 +1,7 @@
 package concurrent
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -29,6 +30,30 @@ func TestList(t *testing.T) {
 		values2 = append(values2, value.Second.(int))
 		if values2[value.First.(int)] != values1[value.First.(int)] {
 			t.Error("unexpected")
+		}
+	}
+}
+
+func TestMap(t *testing.T) {
+	m := NewMap()
+	m.Put("0", 0)
+	m.Put("1", 1)
+
+	_, ok := m.Get("0")
+	if !ok {
+		t.Error("not expected")
+	}
+
+	_, ok = m.Get("1")
+	if !ok {
+		t.Error("not expected")
+	}
+
+	for p := range m.IterPair() {
+		k := p.First.(string)
+		v := p.Second.(int)
+		if fmt.Sprint(v) != k {
+			t.Error("not expected")
 		}
 	}
 }

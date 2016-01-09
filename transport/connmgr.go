@@ -11,7 +11,7 @@ import (
 	"github.com/henryscala/sipq/coding"
 	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/util"
-	"github.com/henryscala/sipq/util/concurrent"
+	"github.com/henryscala/sipq/util/container/concurrent"
 )
 
 var (

@@ -1,13 +1,14 @@
+// Package concurrent implements cotainers that need to be synchronized
+// for multiple goroutine access
 package concurrent
 
 import (
 	"sync"
+
+	"github.com/henryscala/sipq/util/container"
 )
 
-type Pair struct {
-	First, Second interface{}
-}
-
+// A concurrent list, slice with mutex
 type List struct {
 	sync.Mutex
 	items []interface{}
@@ -122,17 +123,17 @@ func (l *List) Iter() <-chan interface{} {
 }
 
 //The user uses range to iter.
-func (l *List) IterPair() <-chan Pair {
+func (l *List) IterPair() <-chan container.Pair {
 	l.Lock()
 
-	c := make(chan Pair)
+	c := make(chan container.Pair)
 
 	go func() {
 		defer l.Unlock()
 		defer close(c)
 
 		for i, v := range l.items {
-			c <- Pair{First: i, Second: v}
+			c <- container.Pair{First: i, Second: v}
 		}
 
 	}()
@@ -147,7 +148,52 @@ func (l *List) Get(ith int) interface{} {
 	return l.items[ith]
 }
 
+// A concurrent map, map with Mutex
 type Map struct {
 	sync.Mutex
 	items map[interface{}]interface{}
+}
+
+func NewMap() *Map {
+	m := &Map{}
+	m.items = make(map[interface{}]interface{})
+	return m
+}
+
+func (m *Map) Get(key interface{}) (interface{}, bool) {
+	m.Lock()
+	defer m.Unlock()
+	v, ok := m.items[key]
+	return v, ok
+}
+
+func (m *Map) Put(key, value interface{}) {
+	m.Lock()
+	defer m.Unlock()
+
+	m.items[key] = value
+}
+
+func (m *Map) Len() int {
+	m.Lock()
+	defer m.Unlock()
+	return len(m.items)
+}
+
+func (m *Map) IterPair() <-chan container.Pair {
+	m.Lock()
+
+	c := make(chan container.Pair)
+
+	go func() {
+		defer m.Unlock()
+		defer close(c)
+
+		for k, v := range m.items {
+			c <- container.Pair{First: k, Second: v}
+		}
+
+	}()
+
+	return c
 }
