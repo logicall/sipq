@@ -8,11 +8,6 @@ import (
 type TransportType string
 
 const (
-	ServerAddress string = "127.0.0.1:50600"
-	ClientAddress string = "127.0.0.1:50700"
-)
-
-const (
 	TCP  TransportType = "tcp"
 	UDP  TransportType = "udp"
 	SCTP TransportType = "sctp"

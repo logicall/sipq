@@ -3,8 +3,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/henryscala/sipq/config"
+	"github.com/henryscala/sipq/scenario"
 	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/transport"
 	"github.com/henryscala/sipq/util"
@@ -24,9 +26,26 @@ func main() {
 		config.TheExeConfig, err = config.ReadExeConfigFile(config.ConfigFile)
 		util.ErrorPanic(err)
 	}
-	transport.AllServers = transport.StartServers(config.TheExeConfig)
 
-	//wait forever here
-	var exit chan bool = make(chan bool)
-	<-exit
+	transport.StartServer(config.LocalIP, config.LocalPort, transport.TransportType(config.TransportType))
+
+	err = scenario.LoadFile(config.ScenarioFile)
+	if err != nil {
+		util.ErrorPanic(err)
+	}
+
+	var scenarioSuccess chan bool = make(chan bool)
+
+	ascenario := scenario.New()
+	go ascenario.Run(scenarioSuccess)
+
+	sucess := <-scenarioSuccess
+	if sucess {
+		trace.Trace.Println("succeed")
+		os.Exit(0)
+	} else {
+		trace.Trace.Println("failed")
+		os.Exit(-1)
+	}
+
 }

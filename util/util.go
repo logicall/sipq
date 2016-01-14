@@ -1,12 +1,12 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/henryscala/sipq/trace"
-
-	"bytes"
-	"strings"
 )
 
 var (
@@ -56,4 +56,20 @@ func CookSipMsg(s string) string {
 func UUID() string {
 	uuidNum++
 	return fmt.Sprint(uuidNum)
+}
+
+func AddrStr(ip string, port int) string {
+	return fmt.Sprintf("%s:%d", ip, port)
+}
+
+func Addr(ip string, port int, transportType string) (net.Addr, error) {
+	transportType = strings.ToLower(transportType)
+	switch {
+	case strings.Contains(transportType, "udp"):
+		return net.ResolveUDPAddr("udp", AddrStr(ip, port))
+	case strings.Contains(transportType, "tcp"):
+		return net.ResolveTCPAddr("tcp", AddrStr(ip, port))
+	}
+
+	return nil, fmt.Errorf("not implemented")
 }

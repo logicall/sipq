@@ -11,6 +11,11 @@ import (
 	"github.com/henryscala/sipq/util"
 )
 
+const (
+	ServerAddress string = "127.0.0.1:50600"
+	ClientAddress string = "127.0.0.1:50700"
+)
+
 var SipMessageInvite string = `
 INVITE sip:bob@biloxi.com SIP/2.0
 Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bK776asdhds
@@ -59,7 +64,7 @@ hello
 `
 
 func init() {
-	AllServers = StartServers(config.TheExeConfig)
+	StartServers(config.TheExeConfig)
 }
 
 func TestUdpConn(t *testing.T) {

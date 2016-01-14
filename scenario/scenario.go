@@ -5,25 +5,17 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"os"
+
 	"github.com/robertkrimen/otto"
 
 	"github.com/henryscala/sipq/coding"
 	"github.com/henryscala/sipq/config"
 	"github.com/henryscala/sipq/trace"
+	"github.com/henryscala/sipq/transport"
 	"github.com/henryscala/sipq/util"
 	"github.com/henryscala/sipq/util/rawstr"
 )
-
-type message struct {
-	raw    string
-	cooked *coding.SipMessage
-	isSent bool
-}
-
-type messageErr struct {
-	msg string
-	err error
-}
 
 var (
 	gError   *messageErr
@@ -31,8 +23,74 @@ var (
 	vm       *otto.Otto
 )
 
+type message struct {
+	raw    string
+	cooked *coding.SipMessage
+	isSent bool //sending from sipq
+}
+
+type messageErr struct {
+	msg string
+	err error
+}
+
+type Scenario struct {
+	messages []message
+	index    int //used to check to which step the scenario has run
+}
+
+func New() *Scenario {
+	s := &Scenario{}
+	s.messages = messages
+	return s
+}
+
 func (mErr messageErr) String() string {
 	return fmt.Sprintf("%v:%s", mErr.err, mErr.msg)
+}
+
+func (self *Scenario) Run(success chan<- bool) {
+
+	remoteAddr, err := util.Addr(config.RemoteIP, config.RemotePort, config.TransportType)
+	if err != nil {
+		trace.Trace.Println("parse remote addr failed")
+		success <- false
+		return
+	}
+	localAddr, err := util.Addr(config.LocalIP, config.LocalPort, config.TransportType)
+	if err != nil {
+		trace.Trace.Println("parse local addr failed")
+		success <- false
+		return
+	}
+
+	transportType := transport.TransportType(config.TransportType)
+
+	for ; self.index < len(self.messages); self.index++ {
+		msg := self.messages[self.index]
+		msg.cooked.LocalAddr = localAddr
+		msg.cooked.RemoteAddr = remoteAddr
+		if msg.isSent {
+			err = transport.Send(msg.cooked, transportType)
+			if err != nil {
+				trace.Trace.Println("send message failed", err)
+				success <- false
+				return
+			}
+		} else {
+			msgReceived := transport.FetchSipMessage()
+			if err = verifyMessage(msg.cooked, msgReceived); err != nil {
+				trace.Trace.Println("verify message failed")
+				success <- false
+				return
+			}
+		}
+	}
+	success <- true
+}
+
+func verifyMessage(msgExpected, msgReceived *coding.SipMessage) error {
+	return nil //TODO
 }
 
 func handleUserFunc(call otto.FunctionCall, isSent bool) otto.Value {
@@ -86,8 +144,12 @@ func LoadText(scenarioText string) error {
 }
 
 func LoadFile(scenarioFile string) error {
+
 	bs, err := ioutil.ReadFile(scenarioFile)
 	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("Please specify a scenario file")
+		}
 		return err
 	}
 
