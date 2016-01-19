@@ -3,6 +3,8 @@ package config
 import (
 	"flag"
 	"strings"
+
+	"github.com/henryscala/sipq/trace"
 )
 
 const (
@@ -38,8 +40,10 @@ func init() {
 	flag.StringVar(&ScenarioFile, "scenario-file", "", "the text file that contains description of scenarios")
 	flag.StringVar(&RemoteIP, "remote-ip", defaultIP, "the IP address of the peer side")
 	flag.IntVar(&RemotePort, "remote-port", defaultPort, "the IP port of the peer side")
-	flag.StringVar(&RemoteIP, "local-ip", defaultIP, "the local IP address ")
-	flag.IntVar(&RemotePort, "local-port", defaultPort, "the local IP port ")
+	flag.StringVar(&LocalIP, "local-ip", defaultIP, "the local IP address ")
+	flag.IntVar(&LocalPort, "local-port", defaultPort, "the local IP port ")
 
 	flag.Parse()
+	trace.Trace.Println("after parsing flags")
+
 }

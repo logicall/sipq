@@ -27,6 +27,7 @@ func main() {
 		util.ErrorPanic(err)
 	}
 
+	trace.Trace.Println("local ip", config.LocalIP, "local port", config.LocalPort)
 	transport.StartServer(config.LocalIP, config.LocalPort, transport.TransportType(config.TransportType))
 
 	err = scenario.LoadFile(config.ScenarioFile)

@@ -109,7 +109,8 @@ func (msg *SipMessage) String() string {
 
 //if error is EOF, need to handle specially
 func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMessage, error) {
-
+	trace.Trace.Println("enter FetchSipMessageFromReader")
+	defer trace.Trace.Println("exit FetchSipMessageFromReader")
 	var bufReader *bufio.Reader
 
 	bufReader = bufio.NewReader(reader)

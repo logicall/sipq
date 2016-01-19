@@ -3,6 +3,7 @@ package scenario
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"os"
@@ -50,7 +51,8 @@ func (mErr messageErr) String() string {
 }
 
 func (self *Scenario) Run(success chan<- bool) {
-
+	trace.Trace.Println("enter Run")
+	defer trace.Trace.Println("exit Run")
 	remoteAddr, err := util.Addr(config.RemoteIP, config.RemotePort, config.TransportType)
 	if err != nil {
 		trace.Trace.Println("parse remote addr failed")
@@ -100,14 +102,16 @@ func handleUserFunc(call otto.FunctionCall, isSent bool) otto.Value {
 		gError.msg = msgRaw
 		return otto.FalseValue()
 	}
-
+	trace.Trace.Println("handleUserFunc", "isSent", isSent)
 	msgRaw = util.CookSipMsg(msgRaw)
+	trace.Trace.Println("handleUserFunc", "msgRaw", msgRaw)
 
 	if isSent {
 		msgCooked, err := coding.FetchSipMessageFromReader(bytes.NewReader([]byte(msgRaw)), config.IsStreamTransport())
-		if err != nil {
+		if err != nil && err != io.EOF {
 			gError.err = err
 			gError.msg = msgRaw
+			trace.Trace.Println("FetchSipMessageFromReader failed", err, msgRaw)
 			return otto.FalseValue()
 		}
 		msg := message{raw: msgRaw, cooked: msgCooked, isSent: isSent}
@@ -129,8 +133,8 @@ func recv(call otto.FunctionCall) otto.Value {
 }
 
 func LoadText(scenarioText string) error {
-	trace.Trace.Println("enter RunText")
-	defer trace.Trace.Println("exit RunText")
+	trace.Trace.Println("enter LoadText")
+	defer trace.Trace.Println("exit LoadText")
 	compiled, err := rawstr.PreCompile(scenarioText)
 	if err != nil {
 		return err
@@ -138,6 +142,7 @@ func LoadText(scenarioText string) error {
 
 	_, err = vm.Run(compiled)
 	if err != nil {
+		trace.Trace.Println("run scenario failed", err, compiled)
 		return err
 	}
 	return nil
