@@ -100,8 +100,8 @@ func (msg *SipMessage) String() string {
 	for _, hdr := range msg.HeaderMap {
 		msgstr += hdr.String()
 	}
+	msgstr += CRLF //even if there is not body, a empty CRLF shall be included
 	if len(msg.BodyContent) > 0 {
-		msgstr += CRLF
 		msgstr += string(msg.BodyContent)
 	}
 	return msgstr

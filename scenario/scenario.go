@@ -70,9 +70,10 @@ func (self *Scenario) Run(success chan<- bool) {
 
 	for ; self.index < len(self.messages); self.index++ {
 		msg := self.messages[self.index]
-		msg.cooked.LocalAddr = localAddr
-		msg.cooked.RemoteAddr = remoteAddr
+
 		if msg.isSent {
+			msg.cooked.LocalAddr = localAddr
+			msg.cooked.RemoteAddr = remoteAddr
 			err = transport.Send(msg.cooked, transportType)
 			if err != nil {
 				trace.Trace.Println("send message failed", err)

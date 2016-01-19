@@ -105,8 +105,8 @@ func ParseHeader(line string) (SipHeader, error) {
 	if result == nil {
 		return nil, ErrNotMatch
 	}
-	headerName := result[1]
-	headerValue := result[2]
+	headerName := util.StrTrim(result[1])
+	headerValue := util.StrTrim(result[2]) //remove the trailing \r
 	var err error
 	var hdr SipHeader
 	switch {

@@ -49,7 +49,7 @@ var (
 )
 
 type StartLine interface {
-	String() string
+	fmt.Stringer
 }
 
 type RequestLine struct {
