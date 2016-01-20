@@ -11,14 +11,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/henryscala/sipq/trace"
 	"github.com/henryscala/sipq/util"
 )
 
 const (
-	clientPortStr = "50700"
-	serverPortStr = "50600"
-	clientIP      = "127.0.0.1"
-	serverIP      = clientIP
+	clientIP = "127.0.0.1"
+	serverIP = clientIP
 )
 
 var (
@@ -28,9 +27,11 @@ var (
 )
 
 func buildExe() {
-	buildCommand := exec.Command("go", "build")
-
+	trace.Trace.Println("enter buildExe")
+	defer trace.Trace.Println("exit buildExe")
 	os.Chdir(workDir)
+	buildCommand := exec.Command("go", "build")
+	trace.Trace.Println("buildCommand", buildCommand)
 	err := buildCommand.Run()
 	util.ErrorPanic(err)
 }
@@ -46,6 +47,7 @@ func init() {
 		exeName = "sipq"
 	}
 	exeFullName = filepath.Join(workDir, exeName)
+
 }
 
 func dumpReader(r io.Reader, wg *sync.WaitGroup) {
@@ -57,15 +59,25 @@ func dumpReader(r io.Reader, wg *sync.WaitGroup) {
 }
 
 func TestCallEstablishUDP(t *testing.T) {
+
+	ports, err := util.FindFreePort("udp", clientIP, 2)
+	if err != nil {
+		t.Fatal("cannot find free ports", err)
+	}
+	serverPort := ports[0]
+	clientPort := ports[1]
+	t.Log("serverPort", serverPort)
+	t.Log("clientPort", clientPort)
+
 	serverScenarioFile := filepath.Join(workDir, "scenario", "example", "call_establish_server.js")
 	clientScenarioFile := filepath.Join(workDir, "scenario", "example", "call_establish_client.js")
-	serverCommand := exec.Command(exeFullName, "-local-port", serverPortStr,
-		"-remote-port", clientPortStr,
+	serverCommand := exec.Command(exeFullName, "-local-port", fmt.Sprint(serverPort),
+		"-remote-port", fmt.Sprint(clientPort),
 		"-scenario-file", serverScenarioFile,
 	)
 
-	clientCommand := exec.Command(exeFullName, "-local-port", clientPortStr,
-		"-remote-port", serverPortStr,
+	clientCommand := exec.Command(exeFullName, "-local-port", fmt.Sprint(clientPort),
+		"-remote-port", fmt.Sprint(serverPort),
 		"-scenario-file", clientScenarioFile,
 	)
 	t.Log("server command", serverCommand)

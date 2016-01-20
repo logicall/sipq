@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/henryscala/sipq/trace"
@@ -62,6 +63,16 @@ func AddrStr(ip string, port int) string {
 	return fmt.Sprintf("%s:%d", ip, port)
 }
 
+func AddrStrSplit(addr string) (ip string, port int, err error) {
+	strs := strings.Split(addr, ":")
+	//assume the last segment is port
+	portStr := strs[len(strs)-1]
+	port, err = strconv.Atoi(portStr)
+
+	ip = strings.Join(strs[:len(strs)-1], ":")
+	return ip, port, err
+}
+
 func Addr(ip string, port int, transportType string) (net.Addr, error) {
 	transportType = strings.ToLower(transportType)
 	switch {
@@ -72,4 +83,64 @@ func Addr(ip string, port int, transportType string) (net.Addr, error) {
 	}
 
 	return nil, fmt.Errorf("not implemented")
+}
+
+//find number of free port;
+//user of this function should call this function once;
+//multiple call may result in repeated value
+func FindFreePort(transportType string, ip string, num int) ([]int, error) {
+	trace.Trace.Println("enter FindFreePort")
+	defer trace.Trace.Println("exit FindFreePort")
+	var result []int = make([]int, num)
+	transportType = strings.ToLower(transportType)
+
+	switch {
+	case strings.Contains(transportType, "udp"):
+
+		for i := 0; i < num; i++ {
+			addr, err := net.ResolveUDPAddr("udp", AddrStr(ip, 0))
+			if err != nil {
+				return nil, err
+			}
+			udpConn, err := net.ListenUDP("udp", addr)
+			if err != nil {
+				return nil, err
+			}
+			defer udpConn.Close()
+			_, port, err := AddrStrSplit(udpConn.LocalAddr().String())
+
+			if err != nil {
+				return nil, err
+			}
+
+			result[i] = port
+		}
+
+		return result, nil
+
+	case strings.Contains(transportType, "tcp"):
+
+		for i := 0; i < num; i++ {
+			addr, err := net.ResolveTCPAddr("tcp", AddrStr(ip, 0))
+			if err != nil {
+				return nil, err
+			}
+			tcpConn, err := net.ListenTCP("tcp", addr)
+			if err != nil {
+				return nil, err
+			}
+			defer tcpConn.Close()
+			_, port, err := AddrStrSplit(tcpConn.Addr().String())
+			if err != nil {
+				return nil, err
+			}
+
+			result[i] = port
+		}
+
+		return result, nil
+	default:
+
+		return nil, fmt.Errorf("not implemented")
+	}
 }

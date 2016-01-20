@@ -33,3 +33,16 @@ line2
 		t.Error("not expected", cookedStr)
 	}
 }
+
+func TestFindFreePort(t *testing.T) {
+	ports, err := FindFreePort("udp", "127.0.0.1", 2)
+	if err != nil {
+		t.Error(err)
+	}
+	if ports[0] == 0 || ports[1] == 0 {
+		t.Error(ports)
+	}
+	if ports[0] == ports[1] {
+		t.Error(ports)
+	}
+}
