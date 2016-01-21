@@ -33,6 +33,7 @@ func FetchSipMessage() *coding.SipMessage {
 }
 
 //should be called in a go routine, since it is blocking
+// It seems that tcp conn may also meet EOF even though connection is not closed.(need verify further)
 func handleNewData(conn *Connection) {
 	trace.Trace.Println("enter handleNewData", conn)
 	defer trace.Trace.Println("exit handleNewData", conn)
@@ -43,16 +44,17 @@ func handleNewData(conn *Connection) {
 		case TCP:
 			laddr := conn.Conn.LocalAddr()
 			raddr := conn.Conn.RemoteAddr()
+			trace.Trace.Println("handleNewData", "laddr", laddr, "raddr", raddr)
 			msg, err := coding.FetchSipMessageFromReader(conn.Conn, true)
 			if err != nil {
 				if err != io.EOF {
-					conn.Close()
+					//conn.Close()
 					return
 				}
 			}
 			//this connection is over
 			if msg == nil {
-				conn.Close()
+				//conn.Close()
 				return
 			}
 
@@ -61,7 +63,7 @@ func handleNewData(conn *Connection) {
 			sipMsgChan <- *msg
 			//this connection is over
 			if err == io.EOF {
-				conn.Close()
+				//conn.Close()
 				return
 			}
 
