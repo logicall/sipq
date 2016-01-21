@@ -48,13 +48,13 @@ func handleNewData(conn *Connection) {
 			msg, err := coding.FetchSipMessageFromReader(conn.Conn, true)
 			if err != nil {
 				if err != io.EOF {
-					//conn.Close()
+					//conn.Close() TODO: consider whether this statement is required
 					return
 				}
 			}
 			//this connection is over
 			if msg == nil {
-				//conn.Close()
+				//conn.Close() TODO: consider whether this statement is required
 				return
 			}
 
@@ -63,7 +63,7 @@ func handleNewData(conn *Connection) {
 			sipMsgChan <- *msg
 			//this connection is over
 			if err == io.EOF {
-				//conn.Close()
+				//conn.Close() TODO: consider whether this statement is required
 				return
 			}
 

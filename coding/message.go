@@ -252,6 +252,7 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 				trace.Trace.Println("FetchSipMessageFromReader state", state, "->", expectingBody)
 				state = expectingBody
 				hdr, err = sipMessage.GetHeader(HdrContentLength)
+				trace.Trace.Println("FetchSipMessageFromReader state", "hdr", hdr, "err", err)
 				switch isStreamTransport {
 				default:
 					if err != nil {
@@ -266,6 +267,10 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 
 				}
 				contentLengthHdr = hdr.(*SipHeaderContentLength)
+				//in case content-length exist, but the value is 0
+				if contentLengthHdr.Length() <= 0 {
+					return sipMessage, nil
+				}
 				continue
 			}
 
