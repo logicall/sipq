@@ -1,36 +1,33 @@
 package transport
 
 import (
-	"github.com/henryscala/sipq/config"
 	"github.com/henryscala/sipq/trace"
+
 	"github.com/henryscala/sipq/util"
 	"github.com/henryscala/sipq/util/container/concurrent"
 )
 
 var allServers *concurrent.List = concurrent.NewList()
 
-func StartServers(cfg *config.ExeConfig) {
-	allServers = concurrent.NewList()
-
-	for _, svrCfg := range cfg.Server {
-		StartServer(svrCfg.Ip, svrCfg.Port, TransportType(svrCfg.Type))
-	}
-}
-
-func StartServer(ip string, port int, transportType TransportType) {
+//start the server and keep the server in all server list
+func StartServer(ip string, port int, transportType TransportType) error {
 	addr := util.AddrStr(ip, port)
 	trace.Trace.Println("starting server", transportType, addr)
 	var server *Server
 	var err error
 	switch transportType {
 	case TCP:
-		server, err = CreateTcpServer(addr)
+		server, err = createTcpServer(addr)
 		go handleNewConn(server)
 
 	case UDP:
 		server, err = CreateUdpServer(addr)
 
 	}
-	util.ErrorPanic(err)
+
+	if err != nil {
+		return err
+	}
 	allServers.Add(server)
+	return nil
 }

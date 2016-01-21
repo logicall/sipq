@@ -1,7 +1,7 @@
 package coding
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -107,13 +107,58 @@ func (msg *SipMessage) String() string {
 	return msgstr
 }
 
+//for debugging whether bufio.NewReader can be called on a reader multiple times.
+//it showed that it can be called multiple times.
+//in future, consider using bufio.NewReader in FetchSipMessageFromReader
+func readString(reader io.Reader, delim byte) (line string, err error) {
+	var buf bytes.Buffer
+	var b []byte = make([]byte, 1) //one byte slice
+	for {
+		n, err := reader.Read(b)
+		if err != nil {
+			return "", err
+		}
+		if n != len(b) {
+			return "", ErrInvalidLine
+		}
+
+		n, err = buf.Write(b)
+		if err != nil {
+			return "", err
+		}
+		if n != len(b) {
+			return "", ErrInvalidLine
+		}
+		if b[0] == delim {
+			break
+		}
+	}
+	return buf.String(), nil
+}
+
+//for debugging whether bufio.NewReader can be called on a reader multiple times.
+//it showed that it can be called multiple times.
+//in future, consider using bufio.NewReader in FetchSipMessageFromReader
+func readByte(reader io.Reader) (byte, error) {
+
+	var b []byte = make([]byte, 1) //one byte slice
+
+	n, err := reader.Read(b)
+	if err != nil {
+		return b[0], err
+	}
+	if n != len(b) {
+		return b[0], ErrInvalidLine
+	}
+
+	return b[0], nil
+
+}
+
 //if error is EOF, need to handle specially
 func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMessage, error) {
 	trace.Trace.Println("enter FetchSipMessageFromReader")
 	defer trace.Trace.Println("exit FetchSipMessageFromReader")
-	var bufReader *bufio.Reader
-
-	bufReader = bufio.NewReader(reader)
 
 	const (
 		expectingStartLine int = iota
@@ -145,8 +190,9 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 	for {
 		switch state {
 		case expectingStartLine:
-			line, err = bufReader.ReadString(LF[0])
-
+			trace.Trace.Println("FetchSipMessageFromReader state", expectingStartLine)
+			line, err = readString(reader, LF[0])
+			trace.Trace.Println("FetchSipMessageFromReader line", line)
 			if err != nil {
 				return nil, err
 			}
@@ -175,9 +221,11 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 			}
 			sipMessage.MsgType = msgType
 			sipMessage.StartLine = startLine
+			trace.Trace.Println("FetchSipMessageFromReader state", state, "->", expectingHeader)
 			state = expectingHeader
+
 		case expectingHeader:
-			line, err = bufReader.ReadString(LF[0])
+			line, err = readString(reader, LF[0])
 
 			if err != nil {
 				if err == io.EOF {
@@ -201,16 +249,16 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 						return nil, err
 					}
 				}
-
+				trace.Trace.Println("FetchSipMessageFromReader state", state, "->", expectingBody)
 				state = expectingBody
 				hdr, err = sipMessage.GetHeader(HdrContentLength)
 				switch isStreamTransport {
-				case true:
+				default:
 					if err != nil {
 						continue
 					}
 				//content length header is mandatory for stream based transport
-				default:
+				case true:
 
 					if err != nil {
 						return nil, ErrInvalidMsg
@@ -248,13 +296,14 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 		case expectingBody:
 			for {
 
-				b, err := bufReader.ReadByte()
+				b, err := readByte(reader)
+				trace.Trace.Println("FetchSipMessageFromReader read a byte", string(b), "err", err, "contentLengthHdr", contentLengthHdr)
 				if err != nil {
 					if err == io.EOF {
 						switch isStreamTransport {
-						case true:
-							return sipMessage, err
 						default:
+							return sipMessage, err
+						case true: //for streamed based connection, there must be a content length header
 							if len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
 								return sipMessage, err
 							} else {
@@ -266,10 +315,11 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 					trace.Trace.Println(ErrInvalidMsg)
 					return nil, ErrInvalidMsg
 				}
+
+				sipMessage.BodyContent = append(sipMessage.BodyContent, b)
 				if contentLengthHdr != nil && len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
 					return sipMessage, nil
 				}
-				sipMessage.BodyContent = append(sipMessage.BodyContent, b)
 			} //inner for
 		} //switch
 	} //for

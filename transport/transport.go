@@ -3,6 +3,8 @@ package transport
 
 import (
 	"net"
+
+	"github.com/henryscala/sipq/trace"
 )
 
 type TransportType string
@@ -51,6 +53,8 @@ func (conn *Connection) Write(buf []byte) (int, error) {
 }
 
 func (conn *Connection) Close() {
+	trace.Trace.Println("enter Close", conn)
+	defer trace.Trace.Println("exit Close", conn)
 	conn.Conn.Close() //ignore error
 	allConnections.RemoveItem(conn)
 }
@@ -113,7 +117,7 @@ func CreateUdpServer(laddr string) (*Server, error) {
 }
 
 //laddr(local addr) is like 127.0.0.1:5060
-func CreateTcpServer(laddr string) (*Server, error) {
+func createTcpServer(laddr string) (*Server, error) {
 	server := &Server{TransportType: TCP}
 
 	listener, err := net.Listen(TCP.String(), laddr)
@@ -128,6 +132,8 @@ func CreateTcpServer(laddr string) (*Server, error) {
 
 //raddr(remote addr) is like 127.0.0.1:5060
 func CreateTcpConnection(raddr string) (*Connection, error) {
+	trace.Trace.Println("enter CreateTcpConnection")
+	defer trace.Trace.Println("exit CreateTcpConnection")
 	conn, err := net.Dial(TCP.String(), raddr)
 	if err != nil {
 		return nil, err

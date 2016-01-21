@@ -1,5 +1,6 @@
-nimcache/
 *.swp
 cscope*
 tags
-.DS_Store
+sipq.exe 
+sipq.exe~
+sipq

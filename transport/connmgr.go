@@ -34,6 +34,8 @@ func FetchSipMessage() *coding.SipMessage {
 
 //should be called in a go routine, since it is blocking
 func handleNewData(conn *Connection) {
+	trace.Trace.Println("enter handleNewData", conn)
+	defer trace.Trace.Println("exit handleNewData", conn)
 	var buf []byte = make([]byte, coding.MaxUdpPacketLen)
 
 	for {
@@ -42,17 +44,26 @@ func handleNewData(conn *Connection) {
 			laddr := conn.Conn.LocalAddr()
 			raddr := conn.Conn.RemoteAddr()
 			msg, err := coding.FetchSipMessageFromReader(conn.Conn, true)
-			if err != nil && err != io.EOF {
+			if err != nil {
+				if err != io.EOF {
+					conn.Close()
+					return
+				}
+			}
+			//this connection is over
+			if msg == nil {
 				conn.Close()
 				return
 			}
+
 			msg.LocalAddr = laddr
 			msg.RemoteAddr = raddr
+			sipMsgChan <- *msg
+			//this connection is over
 			if err == io.EOF {
 				conn.Close()
 				return
 			}
-			sipMsgChan <- *msg
 
 		//get a whole message from the connections and output the message
 		case UDP:
@@ -65,14 +76,24 @@ func handleNewData(conn *Connection) {
 			}
 			udpReader := bytes.NewReader(buf[:n])
 			msg, err := coding.FetchSipMessageFromReader(udpReader, false)
-			if err != nil && err != io.EOF {
-				trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
-				return
+			if err != nil {
+				if err != io.EOF {
+					trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
+					return
+				}
 			}
 
+			//this connection is over
+			if msg == nil {
+				return
+			}
 			msg.LocalAddr = laddr
 			msg.RemoteAddr = raddr
 			sipMsgChan <- *msg
+			//this connection is over
+			if err == io.EOF {
+				return
+			}
 		default:
 			trace.Trace.Fatalln("not implemented")
 		}
@@ -92,20 +113,24 @@ func handleNewConn(svr *Server) {
 }
 
 func Send(msg *coding.SipMessage, transportType TransportType) error {
+	trace.Trace.Println("enter Send")
+	defer trace.Trace.Println("exit Send")
 	switch transportType {
 	case TCP:
 		return sendTcp(msg)
 	case UDP:
 		return sendUdp(msg)
+	default:
+
+		return ErrTransport
 	}
-	util.ErrorPanic(ErrTransport) //NOT IMPLEMENTED
-	return ErrTransport
 
 }
 
 //This function is blocking
 func sendTcp(msg *coding.SipMessage) error {
-
+	trace.Trace.Println("enter sendTcp")
+	defer trace.Trace.Println("exit sendTcp")
 	var conn *Connection
 	var err error
 	//find connection
@@ -135,6 +160,8 @@ func sendTcp(msg *coding.SipMessage) error {
 }
 
 func sendUdp(msg *coding.SipMessage) error {
+	trace.Trace.Println("enter sendUdp")
+	defer trace.Trace.Println("exit sendUdp")
 	var conn *Connection
 	var err error
 	//find connection

@@ -7,13 +7,8 @@ import (
 	"testing"
 
 	"github.com/henryscala/sipq/coding"
-	"github.com/henryscala/sipq/config"
-	"github.com/henryscala/sipq/util"
-)
 
-const (
-	ServerAddress string = "127.0.0.1:50600"
-	ClientAddress string = "127.0.0.1:50700"
+	"github.com/henryscala/sipq/util"
 )
 
 var SipMessageInvite string = `
@@ -63,14 +58,22 @@ Content-Length: 5
 hello
 `
 
-func init() {
-	StartServers(config.TheExeConfig)
-}
-
 func TestUdpConn(t *testing.T) {
+	ip := "127.0.0.1"
+	ports, err := util.FindFreePort("udp", ip, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverAddress := util.AddrStr(ip, ports[0])
+	clientAddress := util.AddrStr(ip, ports[1])
 
-	raddr, _ := net.ResolveUDPAddr(UDP.String(), ServerAddress)
-	client, err := CreateUdpServer(ClientAddress)
+	err = StartServer(ip, ports[0], UDP)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	raddr, _ := net.ResolveUDPAddr(UDP.String(), serverAddress)
+	client, err := CreateUdpServer(clientAddress)
 	if err != nil {
 		t.Fatal("create udp client side endpoint failed")
 	}
@@ -90,8 +93,18 @@ func TestUdpConn(t *testing.T) {
 }
 
 func TestTcpConn(t *testing.T) {
+	ip := "127.0.0.1"
+	ports, err := util.FindFreePort("tcp", ip, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverAddress := util.AddrStr(ip, ports[0])
 
-	client, err := CreateTcpConnection(ServerAddress)
+	err = StartServer(ip, ports[0], TCP)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := CreateTcpConnection(serverAddress)
 
 	if err != nil {
 		t.Fatal("create TCP client side endpoint failed")
@@ -119,8 +132,17 @@ func TestTcpConn(t *testing.T) {
 }
 
 func TestTcpConnWithFoldingHeader(t *testing.T) {
-
-	client, err := CreateTcpConnection(ServerAddress)
+	ip := "127.0.0.1"
+	ports, err := util.FindFreePort("tcp", ip, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = StartServer(ip, ports[0], TCP)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverAddress := util.AddrStr(ip, ports[0])
+	client, err := CreateTcpConnection(serverAddress)
 
 	if err != nil {
 		t.Fatal("create TCP client side endpoint failed")

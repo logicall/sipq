@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+
 	"net"
 	"strconv"
 	"strings"
@@ -112,7 +113,7 @@ func FindFreePort(transportType string, ip string, num int) ([]int, error) {
 			if err != nil {
 				return nil, err
 			}
-
+			trace.Trace.Println("find port", transportType, i, "-", port)
 			result[i] = port
 		}
 
@@ -130,11 +131,12 @@ func FindFreePort(transportType string, ip string, num int) ([]int, error) {
 				return nil, err
 			}
 			defer tcpConn.Close()
+
 			_, port, err := AddrStrSplit(tcpConn.Addr().String())
 			if err != nil {
 				return nil, err
 			}
-
+			trace.Trace.Println("find port", transportType, i, "-", port)
 			result[i] = port
 		}
 

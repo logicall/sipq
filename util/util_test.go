@@ -35,6 +35,8 @@ line2
 }
 
 func TestFindFreePort(t *testing.T) {
+	//for udp
+	t.Log("find free port for udp")
 	ports, err := FindFreePort("udp", "127.0.0.1", 2)
 	if err != nil {
 		t.Error(err)
@@ -45,4 +47,18 @@ func TestFindFreePort(t *testing.T) {
 	if ports[0] == ports[1] {
 		t.Error(ports)
 	}
+
+	//fot tcp
+	t.Log("find free port for tcp")
+	ports, err = FindFreePort("tcp", "127.0.0.1", 2)
+	if err != nil {
+		t.Error(err)
+	}
+	if ports[0] == 0 || ports[1] == 0 {
+		t.Error(ports)
+	}
+	if ports[0] == ports[1] {
+		t.Error(ports)
+	}
+
 }

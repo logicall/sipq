@@ -80,6 +80,7 @@ func (self *Scenario) Run(success chan<- bool) {
 				success <- false
 				return
 			}
+			trace.Trace.Println("<<<sent message", msg.cooked.StartLine)
 		} else {
 			msgReceived := transport.FetchSipMessage()
 			if err = verifyMessage(msg.cooked, msgReceived); err != nil {
@@ -87,8 +88,10 @@ func (self *Scenario) Run(success chan<- bool) {
 				success <- false
 				return
 			}
+			trace.Trace.Println("<<<received message", msgReceived.StartLine)
 		}
 	}
+
 	success <- true
 }
 
@@ -105,7 +108,6 @@ func handleUserFunc(call otto.FunctionCall, isSent bool) otto.Value {
 	}
 	trace.Trace.Println("handleUserFunc", "isSent", isSent)
 	msgRaw = util.CookSipMsg(msgRaw)
-	trace.Trace.Println("handleUserFunc", "msgRaw", msgRaw)
 
 	if isSent {
 		msgCooked, err := coding.FetchSipMessageFromReader(bytes.NewReader([]byte(msgRaw)), config.IsStreamTransport())
