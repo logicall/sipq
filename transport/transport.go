@@ -1,15 +1,15 @@
 // transport.go
 package transport
 
-type TransportType string
+type Type string
 
 const (
-	TCP  TransportType = "tcp"
-	UDP  TransportType = "udp"
-	SCTP TransportType = "sctp"
-	TLS  TransportType = "tls"
+	TCP  Type = "tcp"
+	UDP  Type = "udp"
+	SCTP Type = "sctp"
+	TLS  Type = "tls"
 )
 
-func (tt TransportType) String() string {
+func (tt Type) String() string {
 	return string(tt)
 }

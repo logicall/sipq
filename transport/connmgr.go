@@ -15,7 +15,7 @@ import (
 )
 
 type Connection struct {
-	TransportType TransportType
+	TransportType Type
 	Conn          net.Conn //interface type
 }
 
@@ -119,7 +119,7 @@ func handleNewConn(svr *Server) {
 	}
 }
 
-func Send(msg *coding.SipMessage, transportType TransportType) error {
+func Send(msg *coding.SipMessage, transportType Type) error {
 	trace.Trace("enter Send")
 	defer trace.Trace("exit Send")
 	switch transportType {

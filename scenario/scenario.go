@@ -66,7 +66,7 @@ func (self *Scenario) Run(success chan<- bool) {
 		return
 	}
 
-	transportType := transport.TransportType(config.TransportType)
+	transportType := transport.Type(config.TransportType)
 
 	for ; self.index < len(self.messages); self.index++ {
 		msg := self.messages[self.index]

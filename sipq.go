@@ -19,7 +19,7 @@ func main() {
 	var err error
 
 	trace.Debug("local ip", config.LocalIP, "local port", config.LocalPort, "transport type", config.TransportType)
-	err = transport.StartServer(config.LocalIP, config.LocalPort, transport.TransportType(config.TransportType))
+	err = transport.StartServer(config.LocalIP, config.LocalPort, transport.Type(config.TransportType))
 	if err != nil {
 		util.ErrorPanic(err)
 	}

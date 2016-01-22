@@ -9,7 +9,7 @@ import (
 )
 
 type Server struct {
-	TransportType TransportType
+	TransportType Type
 	Listener      net.Listener //used by TCP/TLS/SCTP instead of UDP
 	UdpConn       *Connection  //used by UDP
 }
@@ -17,7 +17,7 @@ type Server struct {
 var allServers *concurrent.List = concurrent.NewList()
 
 //start the server and keep the server in all server list
-func StartServer(ip string, port int, transportType TransportType) error {
+func StartServer(ip string, port int, transportType Type) error {
 	addr := util.AddrStr(ip, port)
 	trace.Debug("starting server", transportType, addr)
 	var server *Server
