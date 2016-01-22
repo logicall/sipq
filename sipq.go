@@ -25,7 +25,7 @@ func main() {
 	}
 	err = scenario.LoadFile(config.ScenarioFile)
 	if err != nil {
-		util.ErrorPanic(err)
+		trace.Error(err)
 	}
 
 	var scenarioSuccess chan bool = make(chan bool)
