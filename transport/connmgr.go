@@ -14,6 +14,11 @@ import (
 	"github.com/henryscala/sipq/util/container/concurrent"
 )
 
+type Connection struct {
+	TransportType TransportType
+	Conn          net.Conn //interface type
+}
+
 var (
 	//store all connections of any transport type
 	allConnections *concurrent.List = concurrent.NewList()
@@ -214,4 +219,67 @@ func sameLocalAddrFunc(localAddr net.Addr) func(interface{}) bool {
 		return false
 	}
 
+}
+
+//used by UDP
+func (conn *Connection) WriteTo(buf []byte, addr net.Addr) (int, error) {
+	var udpConn *net.UDPConn = conn.Conn.(*net.UDPConn)
+	n, err := udpConn.WriteTo(buf, addr)
+	return n, err
+}
+
+//used by UDP
+func (conn *Connection) ReadFrom(buf []byte) (int, net.Addr, error) {
+	var udpConn *net.UDPConn = conn.Conn.(*net.UDPConn)
+	n, addr, err := udpConn.ReadFrom(buf)
+	return n, addr, err
+}
+
+//used by TCP
+func (conn *Connection) Write(buf []byte) (int, error) {
+	var tcpConn *net.TCPConn = conn.Conn.(*net.TCPConn)
+	n, err := tcpConn.Write(buf)
+	return n, err
+}
+
+func (conn *Connection) Close() {
+	trace.Trace("enter Close", conn)
+	defer trace.Trace("exit Close", conn)
+	conn.Conn.Close() //ignore error
+	allConnections.RemoveItem(conn)
+}
+
+func createUdpConnection(laddr string) (*Connection, error) {
+	svrConn := &Connection{TransportType: UDP}
+	var err error
+	udpAddr, err := net.ResolveUDPAddr(UDP.String(), laddr)
+	if err != nil {
+		return nil, err
+	}
+
+	svrConn.Conn, err = net.ListenUDP(UDP.String(), udpAddr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	allConnections.Add(svrConn)
+	go handleNewData(svrConn)
+
+	return svrConn, nil
+}
+
+//raddr(remote addr) is like 127.0.0.1:5060
+func CreateTcpConnection(raddr string) (*Connection, error) {
+	trace.Trace("enter CreateTcpConnection")
+	defer trace.Trace("exit CreateTcpConnection")
+	conn, err := net.Dial(TCP.String(), raddr)
+	if err != nil {
+		return nil, err
+	}
+	result := &Connection{Conn: conn, TransportType: TCP}
+
+	allConnections.Add(result)
+	go handleNewData(result)
+	return result, nil
 }

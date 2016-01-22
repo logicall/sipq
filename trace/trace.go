@@ -3,38 +3,30 @@ package trace
 import (
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"os"
 )
 
-//Specify the present trace level
-//By default only print error level.
-var TraceLevel int = 0
-var LogWriter io.Writer = os.Stdout
-var pid string = fmt.Sprint(os.Getpid())
-var prefix string = "sipq"
+var (
+	//Specify the present trace level
+	//By default only print error level.
+	TraceLevel int       = 0
+	LogWriter  io.Writer = os.Stdout
+	pid        string    = fmt.Sprint(os.Getpid())
+	prefix     string    = "sipq"
+)
 
 //Note, log is different from normal program output.
 //log may be turned off, but program output may not.
-var TraceLevels []string = []string{
+var traceLevels []string = []string{
 	"error",   //log error message and exit the program
 	"warning", //log warning message and user shall be cautious
 	"info",    //log overall figures of the program(e.g. number of concurrent connections). It should not per transaction basis.
 	"trace",   // only used to log the enter and exit of a function
 	"debug",   // usd to log any kinf of debug print
 }
-
-/*
-var loggers []*log.Logger = []*log.Logger{
-	log.New(LogWriter, "sipq: error", log.LstdFlags|log.Lshortfile),
-	log.New(LogWriter, "sipq: warning", log.LstdFlags|log.Lshortfile),
-	log.New(LogWriter, "sipq: info", log.LstdFlags|log.Lshortfile),
-	log.New(LogWriter, "sipq: trace", log.LstdFlags|log.Lshortfile),
-	log.New(LogWriter, "sipq: debug", log.LstdFlags|log.Lshortfile),
-}*/
 
 func getFileNameLineNum() (fileName string, lineNo string) {
 	_, fileName, line, _ := runtime.Caller(3)
@@ -64,7 +56,7 @@ func printLog(selfLogLevel, globalLogLevel int, args ...interface{}) {
 		fileNameLineNo := fileName + ":" + lineNo
 
 		var argList []interface{} = []interface{}{
-			prefix, pid, TraceLevels[selfLogLevel], time.Now().Format("15:04:05.000"), fileNameLineNo, "|",
+			prefix, pid, traceLevels[selfLogLevel], time.Now().Format("15:04:05.000"), fileNameLineNo, "|",
 		}
 		argList = append(argList, args...)
 
