@@ -13,12 +13,12 @@ import (
 )
 
 func main() {
-	trace.Trace.Println("sipq started")
-	defer trace.Trace.Println("sipq exited")
+	trace.Trace("sipq started")
+	defer trace.Trace("sipq exited")
 
 	var err error
 
-	trace.Trace.Println("local ip", config.LocalIP, "local port", config.LocalPort, "transport type", config.TransportType)
+	trace.Debug("local ip", config.LocalIP, "local port", config.LocalPort, "transport type", config.TransportType)
 	err = transport.StartServer(config.LocalIP, config.LocalPort, transport.TransportType(config.TransportType))
 	if err != nil {
 		util.ErrorPanic(err)
@@ -37,14 +37,14 @@ func main() {
 	select {
 	case sucess := <-scenarioSuccess:
 		if sucess {
-			trace.Trace.Println("scenario succeed")
+			trace.Debug("scenario succeed")
 			os.Exit(0)
 		} else {
-			trace.Trace.Println("scenario failed")
+			trace.Debug("scenario failed")
 			os.Exit(1)
 		}
 	case <-scenarioTimeout:
-		trace.Trace.Println("scenario timeout")
+		trace.Debug("scenario timeout")
 		os.Exit(2)
 	}
 

@@ -53,8 +53,8 @@ func (conn *Connection) Write(buf []byte) (int, error) {
 }
 
 func (conn *Connection) Close() {
-	trace.Trace.Println("enter Close", conn)
-	defer trace.Trace.Println("exit Close", conn)
+	trace.Trace("enter Close", conn)
+	defer trace.Trace("exit Close", conn)
 	conn.Conn.Close() //ignore error
 	allConnections.RemoveItem(conn)
 }
@@ -132,8 +132,8 @@ func createTcpServer(laddr string) (*Server, error) {
 
 //raddr(remote addr) is like 127.0.0.1:5060
 func CreateTcpConnection(raddr string) (*Connection, error) {
-	trace.Trace.Println("enter CreateTcpConnection")
-	defer trace.Trace.Println("exit CreateTcpConnection")
+	trace.Trace("enter CreateTcpConnection")
+	defer trace.Trace("exit CreateTcpConnection")
 	conn, err := net.Dial(TCP.String(), raddr)
 	if err != nil {
 		return nil, err

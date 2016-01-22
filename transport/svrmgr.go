@@ -12,7 +12,7 @@ var allServers *concurrent.List = concurrent.NewList()
 //start the server and keep the server in all server list
 func StartServer(ip string, port int, transportType TransportType) error {
 	addr := util.AddrStr(ip, port)
-	trace.Trace.Println("starting server", transportType, addr)
+	trace.Debug("starting server", transportType, addr)
 	var server *Server
 	var err error
 	switch transportType {

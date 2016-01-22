@@ -51,17 +51,17 @@ func (mErr messageErr) String() string {
 }
 
 func (self *Scenario) Run(success chan<- bool) {
-	trace.Trace.Println("enter Run")
-	defer trace.Trace.Println("exit Run")
+	trace.Trace("enter Run")
+	defer trace.Trace("exit Run")
 	remoteAddr, err := util.Addr(config.RemoteIP, config.RemotePort, config.TransportType)
 	if err != nil {
-		trace.Trace.Println("parse remote addr failed")
+		trace.Debug("parse remote addr failed")
 		success <- false
 		return
 	}
 	localAddr, err := util.Addr(config.LocalIP, config.LocalPort, config.TransportType)
 	if err != nil {
-		trace.Trace.Println("parse local addr failed")
+		trace.Debug("parse local addr failed")
 		success <- false
 		return
 	}
@@ -76,19 +76,19 @@ func (self *Scenario) Run(success chan<- bool) {
 			msg.cooked.RemoteAddr = remoteAddr
 			err = transport.Send(msg.cooked, transportType)
 			if err != nil {
-				trace.Trace.Println("send message failed", err)
+				trace.Debug("send message failed", err)
 				success <- false
 				return
 			}
-			trace.Trace.Println("<<<sent message", msg.cooked.StartLine)
+			trace.Debug("<<<sent message", msg.cooked.StartLine)
 		} else {
 			msgReceived := transport.FetchSipMessage()
 			if err = verifyMessage(msg.cooked, msgReceived); err != nil {
-				trace.Trace.Println("verify message failed")
+				trace.Debug("verify message failed")
 				success <- false
 				return
 			}
-			trace.Trace.Println("<<<received message", msgReceived.StartLine)
+			trace.Debug("<<<received message", msgReceived.StartLine)
 		}
 	}
 
@@ -106,7 +106,7 @@ func handleUserFunc(call otto.FunctionCall, isSent bool) otto.Value {
 		gError.msg = msgRaw
 		return otto.FalseValue()
 	}
-	trace.Trace.Println("handleUserFunc", "isSent", isSent)
+	trace.Debug("handleUserFunc", "isSent", isSent)
 	msgRaw = util.CookSipMsg(msgRaw)
 
 	if isSent {
@@ -114,7 +114,7 @@ func handleUserFunc(call otto.FunctionCall, isSent bool) otto.Value {
 		if err != nil && err != io.EOF {
 			gError.err = err
 			gError.msg = msgRaw
-			trace.Trace.Println("FetchSipMessageFromReader failed", err, msgRaw)
+			trace.Debug("FetchSipMessageFromReader failed", err, msgRaw)
 			return otto.FalseValue()
 		}
 		msg := message{raw: msgRaw, cooked: msgCooked, isSent: isSent}
@@ -136,8 +136,8 @@ func recv(call otto.FunctionCall) otto.Value {
 }
 
 func LoadText(scenarioText string) error {
-	trace.Trace.Println("enter LoadText")
-	defer trace.Trace.Println("exit LoadText")
+	trace.Trace("enter LoadText")
+	defer trace.Trace("exit LoadText")
 	compiled, err := rawstr.PreCompile(scenarioText)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func LoadText(scenarioText string) error {
 
 	_, err = vm.Run(compiled)
 	if err != nil {
-		trace.Trace.Println("run scenario failed", err, compiled)
+		trace.Debug("run scenario failed", err, compiled)
 		return err
 	}
 	return nil

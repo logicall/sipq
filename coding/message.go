@@ -157,8 +157,8 @@ func readByte(reader io.Reader) (byte, error) {
 
 //if error is EOF, need to handle specially
 func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMessage, error) {
-	trace.Trace.Println("enter FetchSipMessageFromReader")
-	defer trace.Trace.Println("exit FetchSipMessageFromReader")
+	trace.Trace("enter FetchSipMessageFromReader")
+	defer trace.Trace("exit FetchSipMessageFromReader")
 
 	const (
 		expectingStartLine int = iota
@@ -179,7 +179,7 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 		//regard the content in the cache as a complete line
 		hdr, err = ParseHeader(line)
 		if err != nil {
-			trace.Trace.Println(ErrInvalidLine, line)
+			trace.Debug(ErrInvalidLine, line)
 			return ErrInvalidLine
 		}
 		sipMessage.AddHeader(hdr)
@@ -190,9 +190,9 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 	for {
 		switch state {
 		case expectingStartLine:
-			trace.Trace.Println("FetchSipMessageFromReader state", expectingStartLine)
+			trace.Debug("FetchSipMessageFromReader state", expectingStartLine)
 			line, err = readString(reader, LF[0])
-			trace.Trace.Println("FetchSipMessageFromReader line", line)
+			trace.Debug("FetchSipMessageFromReader line", line)
 			if err != nil {
 				return nil, err
 			}
@@ -206,7 +206,7 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 				}
 			}
 			if !strings.HasSuffix(line, CRLF) {
-				trace.Trace.Println(ErrInvalidLine)
+				trace.Debug(ErrInvalidLine)
 				return nil, ErrInvalidLine
 			}
 			line = util.StrTrim(line)
@@ -216,12 +216,12 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 
 			startLine, msgType, err := ParseStartLine(line)
 			if err != nil {
-				trace.Trace.Println(err)
+				trace.Debug(err)
 				return nil, err
 			}
 			sipMessage.MsgType = msgType
 			sipMessage.StartLine = startLine
-			trace.Trace.Println("FetchSipMessageFromReader state", state, "->", expectingHeader)
+			trace.Debug("FetchSipMessageFromReader state", state, "->", expectingHeader)
 			state = expectingHeader
 
 		case expectingHeader:
@@ -235,11 +235,11 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 			}
 			lineLen = len(line)
 			if lineLen < 2 {
-				trace.Trace.Println(ErrInvalidLine)
+				trace.Debug(ErrInvalidLine)
 				return nil, ErrInvalidLine
 			}
 			if !strings.HasSuffix(line, CRLF) {
-				trace.Trace.Println(ErrInvalidLine)
+				trace.Debug(ErrInvalidLine)
 				return nil, ErrInvalidLine
 			}
 			if lineLen == 2 {
@@ -249,10 +249,10 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 						return nil, err
 					}
 				}
-				trace.Trace.Println("FetchSipMessageFromReader state", state, "->", expectingBody)
+				trace.Debug("FetchSipMessageFromReader state", state, "->", expectingBody)
 				state = expectingBody
 				hdr, err = sipMessage.GetHeader(HdrContentLength)
-				trace.Trace.Println("FetchSipMessageFromReader state", "hdr", hdr, "err", err)
+				trace.Debug("FetchSipMessageFromReader state", "hdr", hdr, "err", err)
 				switch isStreamTransport {
 				default:
 					if err != nil {
@@ -291,7 +291,7 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 			err = parseAndAddHeader(lineCache)
 
 			if err != nil {
-				trace.Trace.Println(ErrInvalidLine, lineCache)
+				trace.Debug(ErrInvalidLine, lineCache)
 				return nil, ErrInvalidLine
 			}
 
@@ -302,7 +302,7 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 			for {
 
 				b, err := readByte(reader)
-				trace.Trace.Println("FetchSipMessageFromReader read a byte", string(b), "err", err, "contentLengthHdr", contentLengthHdr)
+				trace.Debug("FetchSipMessageFromReader read a byte", string(b), "err", err, "contentLengthHdr", contentLengthHdr)
 				if err != nil {
 					if err == io.EOF {
 						switch isStreamTransport {
@@ -312,12 +312,12 @@ func FetchSipMessageFromReader(reader io.Reader, isStreamTransport bool) (*SipMe
 							if len(sipMessage.BodyContent) >= contentLengthHdr.Length() {
 								return sipMessage, err
 							} else {
-								trace.Trace.Println(ErrInvalidMsg)
+								trace.Debug(ErrInvalidMsg)
 								return nil, ErrInvalidMsg
 							}
 						}
 					}
-					trace.Trace.Println(ErrInvalidMsg)
+					trace.Debug(ErrInvalidMsg)
 					return nil, ErrInvalidMsg
 				}
 

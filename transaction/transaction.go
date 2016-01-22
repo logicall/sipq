@@ -25,7 +25,7 @@ func newID() string {
 type HandleFunc func(t *Transaction, msg *coding.SipMessage)
 
 func (t *Transaction) changeState(destState int) {
-	trace.Trace.Println("transaction", t.transType, t.branchID, t.state, "->", destState)
+	trace.Trace("transaction", t.transType, t.branchID, t.state, "->", destState)
 	t.state = destState
 }
 

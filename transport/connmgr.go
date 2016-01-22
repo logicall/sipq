@@ -35,8 +35,8 @@ func FetchSipMessage() *coding.SipMessage {
 //should be called in a go routine, since it is blocking
 // It seems that tcp conn may also meet EOF even though connection is not closed.(need verify further)
 func handleNewData(conn *Connection) {
-	trace.Trace.Println("enter handleNewData", conn)
-	defer trace.Trace.Println("exit handleNewData", conn)
+	trace.Trace("enter handleNewData", conn)
+	defer trace.Trace("exit handleNewData", conn)
 	var buf []byte = make([]byte, coding.MaxUdpPacketLen)
 
 	for {
@@ -44,7 +44,7 @@ func handleNewData(conn *Connection) {
 		case TCP:
 			laddr := conn.Conn.LocalAddr()
 			raddr := conn.Conn.RemoteAddr()
-			trace.Trace.Println("handleNewData", "laddr", laddr, "raddr", raddr)
+			trace.Debug("handleNewData", "laddr", laddr, "raddr", raddr)
 			msg, err := coding.FetchSipMessageFromReader(conn.Conn, true)
 			if err != nil {
 				if err != io.EOF {
@@ -73,14 +73,14 @@ func handleNewData(conn *Connection) {
 			n, raddr, err := conn.ReadFrom(buf)
 
 			if err != nil {
-				trace.Trace.Println("read failed from udp", conn, err) //UDP connection, not return
+				trace.Debug("read failed from udp", conn, err) //UDP connection, not return
 				continue
 			}
 			udpReader := bytes.NewReader(buf[:n])
 			msg, err := coding.FetchSipMessageFromReader(udpReader, false)
 			if err != nil {
 				if err != io.EOF {
-					trace.Trace.Fatalln("UDP server socket encounters unexpected error", err)
+					trace.Error("UDP server socket encounters unexpected error", err)
 					return
 				}
 			}
@@ -97,7 +97,7 @@ func handleNewData(conn *Connection) {
 				return
 			}
 		default:
-			trace.Trace.Fatalln("not implemented")
+			trace.Error("not implemented")
 		}
 	}
 }
@@ -107,7 +107,7 @@ func handleNewConn(svr *Server) {
 	for {
 		conn, err := svr.Accept()
 		util.ErrorPanic(err)
-		trace.Trace.Println("new connection from",
+		trace.Debug("new connection from",
 			conn.Conn.RemoteAddr(), "come to", conn.Conn.LocalAddr())
 		allConnections.Add(conn)
 		go handleNewData(conn)
@@ -115,8 +115,8 @@ func handleNewConn(svr *Server) {
 }
 
 func Send(msg *coding.SipMessage, transportType TransportType) error {
-	trace.Trace.Println("enter Send")
-	defer trace.Trace.Println("exit Send")
+	trace.Trace("enter Send")
+	defer trace.Trace("exit Send")
 	switch transportType {
 	case TCP:
 		return sendTcp(msg)
@@ -131,8 +131,8 @@ func Send(msg *coding.SipMessage, transportType TransportType) error {
 
 //This function is blocking
 func sendTcp(msg *coding.SipMessage) error {
-	trace.Trace.Println("enter sendTcp")
-	defer trace.Trace.Println("exit sendTcp")
+	trace.Trace("enter sendTcp")
+	defer trace.Trace("exit sendTcp")
 	var conn *Connection
 	var err error
 	//find connection
@@ -162,8 +162,8 @@ func sendTcp(msg *coding.SipMessage) error {
 }
 
 func sendUdp(msg *coding.SipMessage) error {
-	trace.Trace.Println("enter sendUdp")
-	defer trace.Trace.Println("exit sendUdp")
+	trace.Trace("enter sendUdp")
+	defer trace.Trace("exit sendUdp")
 	var conn *Connection
 	var err error
 	//find connection

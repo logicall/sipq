@@ -28,20 +28,20 @@ var (
 )
 
 func buildExe() {
-	trace.Trace.Println("enter buildExe")
-	defer trace.Trace.Println("exit buildExe")
+	trace.Trace("enter buildExe")
+	defer trace.Trace("exit buildExe")
 	os.Chdir(workDir)
 	buildCommand := exec.Command("go", "build")
-	trace.Trace.Println("buildCommand", buildCommand)
+	trace.Debug("buildCommand", buildCommand)
 	err := buildCommand.Run()
 	util.ErrorPanic(err)
 }
 
 func init() {
 	workDir, _ = filepath.Abs("..")
-	fmt.Println("working dir", workDir)
+	trace.Debug("working dir", workDir)
 	buildExe()
-	fmt.Println("operating system", runtime.GOOS)
+	trace.Debug("operating system", runtime.GOOS)
 	if runtime.GOOS == "windows" {
 		exeName = "sipq.exe"
 	} else {

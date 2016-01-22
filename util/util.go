@@ -17,7 +17,8 @@ var (
 
 func ErrorPanic(err error) {
 	if err != nil {
-		trace.Trace.Fatalln(err)
+		trace.Error(err)
+
 	}
 }
 
@@ -90,8 +91,8 @@ func Addr(ip string, port int, transportType string) (net.Addr, error) {
 //user of this function should call this function once;
 //multiple call may result in repeated value
 func FindFreePort(transportType string, ip string, num int) ([]int, error) {
-	trace.Trace.Println("enter FindFreePort")
-	defer trace.Trace.Println("exit FindFreePort")
+	trace.Trace("enter FindFreePort")
+	defer trace.Trace("exit FindFreePort")
 	var result []int = make([]int, num)
 	transportType = strings.ToLower(transportType)
 
@@ -113,7 +114,7 @@ func FindFreePort(transportType string, ip string, num int) ([]int, error) {
 			if err != nil {
 				return nil, err
 			}
-			trace.Trace.Println("find port", transportType, i, "-", port)
+			trace.Debug("find port", transportType, i, "-", port)
 			result[i] = port
 		}
 
@@ -136,7 +137,7 @@ func FindFreePort(transportType string, ip string, num int) ([]int, error) {
 			if err != nil {
 				return nil, err
 			}
-			trace.Trace.Println("find port", transportType, i, "-", port)
+			trace.Debug("find port", transportType, i, "-", port)
 			result[i] = port
 		}
 

@@ -72,8 +72,8 @@ func (stl *StatusLine) String() string {
 }
 
 func ParseStartLine(line string) (startLine StartLine, msgType int, err error) {
-	trace.Trace.Println("enter ParseStartLine", line)
-	defer trace.Trace.Println("exit ParseStartLine", line)
+	trace.Trace("enter ParseStartLine", line)
+	defer trace.Trace("exit ParseStartLine", line)
 	var result []string
 
 	result = reRequestLine.FindStringSubmatch(line)
