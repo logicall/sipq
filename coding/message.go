@@ -46,13 +46,18 @@ var ReasonPhrase map[int]string = map[int]string{
 
 //stands for a whole SIP message
 type SipMessage struct {
-	MsgType    int //request or response
-	StartLine  StartLine
-	LocalAddr  net.Addr
-	RemoteAddr net.Addr
-	HeaderMap  map[string]SipHeader
+	MsgType   int //request or response
+	StartLine StartLine
+
+	HeaderMap map[string]SipHeader
 
 	BodyContent []byte
+
+	//address info
+	//for incoming message, it stands for the connection the message comes from
+	//for outgoing message, it stands for the preferred connection the message goes to
+	LocalAddr  net.Addr
+	RemoteAddr net.Addr
 }
 
 func (msg *SipMessage) GetHeader(name string) (SipHeader, error) {

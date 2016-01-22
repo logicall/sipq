@@ -62,7 +62,6 @@ func handleNewData(conn *Connection) {
 				//conn.Close() TODO: consider whether this statement is required
 				return
 			}
-
 			msg.LocalAddr = laddr
 			msg.RemoteAddr = raddr
 			sipMsgChan <- *msg
@@ -94,6 +93,7 @@ func handleNewData(conn *Connection) {
 			if msg == nil {
 				return
 			}
+
 			msg.LocalAddr = laddr
 			msg.RemoteAddr = raddr
 			sipMsgChan <- *msg

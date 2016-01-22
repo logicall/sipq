@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/henryscala/sipq/coding"
-
 	"github.com/henryscala/sipq/util"
 )
 
